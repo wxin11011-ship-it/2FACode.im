@@ -4,7 +4,7 @@ site:
   base: '/'
   trailingSlash: false
 
-  googleSiteVerificationId: '' # Google Search Console 验证码
+  googleSiteVerificationId: '' # Google Search Console verification code
 
 metadata:
   title:
@@ -23,7 +23,7 @@ metadata:
         height: 630
         alt: '2FACode.im — private browser-based 2FA code generator'
 
-# 国际化配置（可选）
+# Optional i18n
 i18n:
   language: en
   textDirection: ltr

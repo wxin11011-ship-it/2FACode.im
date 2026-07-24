@@ -1,6 +1,6 @@
 # Security Policy
 
-2FACode handles authentication material in the browser, so reports must never contain a real TOTP secret, live code, password, recovery code, session token, or other credential.
+2FACode.im handles authentication material in the browser, so reports must never contain a real TOTP secret, live code, password, recovery code, session token, or other credential.
 
 ## Reporting a vulnerability
 

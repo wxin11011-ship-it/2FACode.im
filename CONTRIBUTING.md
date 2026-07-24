@@ -1,6 +1,6 @@
-# Contributing to 2FACode
+# Contributing to 2FACode.im
 
-2FACode is a small, privacy-sensitive TOTP utility. Keep changes narrow, reviewable, and consistent with the browser-only architecture.
+2FACode.im is a small, privacy-sensitive TOTP utility. Keep changes narrow, reviewable, and consistent with the browser-only architecture.
 
 By submitting a contribution, you agree that it may be distributed under the project's [PolyForm Noncommercial License 1.0.0](LICENSE). The published source is available for noncommercial use; commercial use is not granted.
 

@@ -1,7 +1,7 @@
 import { getPermalink } from './utils/permalinks';
 
 // ============================================
-// 导航配置 - 修改这里来自定义你的导航
+// Site navigation — edit this file to customize header/footer links
 // ============================================
 
 /** Public source repository (open-source signal in the header). */
