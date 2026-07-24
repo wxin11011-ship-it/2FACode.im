@@ -25,21 +25,19 @@ import { GITHUB_REPO_URL } from '~/navigation';
           spellcheck="false"
           placeholder={'Paste one secret per line…\nAccount name | BASE32SECRET\notpauth://totp/…'}
           aria-describedby="input-help input-errors"></textarea>
-        <p class="drop-hint" data-drop-hint hidden>Drop QR image to decode</p>
         <input type="file" data-qr-file accept="image/*" hidden />
       </div>
       <div id="input-help" class="input-help">
-        <p>Paste secrets, or upload a setup QR screenshot. Decoded in this browser only.</p>
-        <div class="help-actions">
-          <button type="button" class="text-button" data-qr-upload>Upload QR image</button>
-          <button type="button" class="text-button" data-demo>Try demo key</button>
-        </div>
+        <p>Paste secrets, one per line (up to 50). QR screenshots decode only in this browser.</p>
       </div>
 
       <div id="input-errors" class="input-errors" data-errors role="alert" aria-live="polite" hidden></div>
 
       <div class="form-actions">
-        <button type="submit" class="primary-button">Generate codes</button>
+        <div class="action-row">
+          <button type="submit" class="primary-button">Generate codes</button>
+          <button type="button" class="upload-button" data-qr-upload>Upload QR image</button>
+        </div>
         <p class="trust-note">
           Nothing is stored.
           <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">View source</a>
@@ -89,11 +87,9 @@ import { GITHUB_REPO_URL } from '~/navigation';
     const codeList = tool.querySelector('[data-code-list]');
     const copyAll = tool.querySelector('[data-copy-all]');
     const clear = tool.querySelector('[data-clear]');
-    const demo = tool.querySelector('[data-demo]');
     const qrUpload = tool.querySelector('[data-qr-upload]');
     const qrFile = tool.querySelector('[data-qr-file]');
     const dropZone = tool.querySelector('[data-drop-zone]');
-    const dropHint = tool.querySelector('[data-drop-hint]');
 
     let activeEntries: TotpEntry[] = [];
     let activeTokens = new Map<string, string>();
@@ -379,13 +375,6 @@ import { GITHUB_REPO_URL } from '~/navigation';
       }
     };
 
-    demo?.addEventListener('click', () => {
-      if (!(input instanceof HTMLTextAreaElement)) return;
-      input.value = 'Public RFC demo | GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ';
-      input.dispatchEvent(new Event('input'));
-      input.focus();
-    });
-
     qrUpload?.addEventListener('click', () => {
       if (qrFile instanceof HTMLInputElement) qrFile.click();
     });
@@ -396,7 +385,6 @@ import { GITHUB_REPO_URL } from '~/navigation';
 
     const setDropActive = (active: boolean) => {
       dropZone?.classList.toggle('is-dragover', active);
-      if (dropHint instanceof HTMLElement) dropHint.hidden = !active;
     };
 
     dropZone?.addEventListener('dragenter', (event) => {
@@ -532,21 +520,6 @@ import { GITHUB_REPO_URL } from '~/navigation';
   .input-shell.is-dragover textarea {
     border-color: var(--action);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--action) 14%, transparent);
-    background: color-mix(in srgb, var(--action) 4%, var(--input-bg));
-  }
-
-  .drop-hint {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    margin: 0;
-    border-radius: 0.75rem;
-    color: var(--action);
-    background: color-mix(in srgb, var(--action) 8%, transparent);
-    font-size: 0.9rem;
-    font-weight: 650;
-    pointer-events: none;
   }
 
   textarea {
@@ -610,7 +583,6 @@ import { GITHUB_REPO_URL } from '~/navigation';
     font: inherit;
   }
 
-  .text-button,
   .secondary-button,
   .copy-button {
     border: 0;
@@ -621,22 +593,38 @@ import { GITHUB_REPO_URL } from '~/navigation';
     cursor: pointer;
   }
 
-  .text-button {
-    flex: 0 0 auto;
-    padding: 0;
-    font-size: 0.78rem;
-  }
-
-  .help-actions {
+  .action-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: flex-end;
-    gap: 0.75rem 1rem;
+    gap: 0.55rem;
   }
 
-  .text-button:disabled {
-    opacity: 0.55;
+  .upload-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    border: 0;
+    border-radius: 0.65rem;
+    padding: 0.7rem 1.1rem;
+    color: white;
+    background: var(--action);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition:
+      background 140ms ease,
+      transform 90ms ease-out;
+  }
+
+  .upload-button:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--action) 88%, black);
+  }
+
+  .upload-button:disabled {
+    opacity: 0.65;
     cursor: wait;
   }
 
@@ -702,9 +690,9 @@ import { GITHUB_REPO_URL } from '~/navigation';
   }
 
   .primary-button:active,
+  .upload-button:active,
   .secondary-button:active,
-  .copy-button:active,
-  .text-button:active {
+  .copy-button:active {
     transform: scale(0.98);
   }
 
@@ -856,8 +844,14 @@ import { GITHUB_REPO_URL } from '~/navigation';
       min-height: 7.25rem;
     }
 
-    .primary-button {
+    .action-row {
       width: 100%;
+    }
+
+    .primary-button,
+    .upload-button {
+      flex: 1 1 auto;
+      min-width: 0;
     }
 
     .tool-topline,
