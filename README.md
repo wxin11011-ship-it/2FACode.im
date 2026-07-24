@@ -12,7 +12,7 @@
 - Supports SHA-1 / SHA-256 / SHA-512, 6–8 digits, and 15–120 second periods
 - Auto-refreshes codes and countdowns
 - Copy one code, copy all, or clear the workspace
-- No generation API, analytics, ad scripts, or secret storage
+- No generation API, ad scripts, or secret storage (optional page analytics for traffic only)
 - Web Crypto first, with a Noble pure-JS crypto fallback
 - RFC 6238 test vectors and input-boundary tests
 

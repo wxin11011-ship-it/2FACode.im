@@ -44,21 +44,39 @@ export function buildPolicy(scriptHashes, styleHashes) {
   const scripts = [...new Set(scriptHashes)].sort();
   const styles = [...new Set(styleHashes)].sort();
 
+  // PageView (immediate) + Clarity (delayed) + Feedback Hub submit.
+  // Clarity may load balance across letter subdomains and c.bing.com.
+  const scriptSrc = [
+    "script-src 'self'",
+    ...scripts,
+    'https://app.pageview.app',
+    'https://www.clarity.ms',
+    'https://scripts.clarity.ms',
+  ].join(' ');
+
+  const connectSrc = [
+    "connect-src 'self'",
+    'https://feedback.remixtranslator.com',
+    'https://app.pageview.app',
+    'https://www.clarity.ms',
+    'https://*.clarity.ms',
+    'https://c.bing.com',
+  ].join(' ');
+
   return [
     "default-src 'self'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
-    ["script-src 'self'", ...scripts].join(' '),
+    scriptSrc,
     ["style-src 'self'", ...styles].join(' '),
-    "img-src 'self' data:",
-    "font-src 'self'",
-    // Feedback modal posts JSON to the shared Feedback Hub only.
-    "connect-src https://feedback.remixtranslator.com",
+    "img-src 'self' data: https://*.clarity.ms https://c.bing.com",
+    "font-src 'self' data:",
+    connectSrc,
     "media-src 'none'",
     "frame-src 'none'",
-    "worker-src 'none'",
+    "worker-src 'self' blob:",
     "manifest-src 'self'",
     'upgrade-insecure-requests',
   ].join('; ');

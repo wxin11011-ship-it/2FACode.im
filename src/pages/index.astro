@@ -38,7 +38,7 @@ const faqs = [
   {
     question: 'Is it safe to enter my 2FA secret key here?',
     answer:
-      '2FACode processes the secret in this browser tab and does not send it to an API, analytics service, or storage system. That removes the server-upload risk, but no web tool can protect a secret from a compromised device, malicious browser extension, or a look-alike domain. Use a trusted device, confirm the domain, clear the workspace when finished, and prefer a dedicated authenticator or encrypted vault for long-term storage.',
+      '2FACode processes the secret in this browser tab and does not send it to a generation API or secret storage system. Page analytics may measure visits but are not used as a TOTP backend. No web tool can protect a secret from a compromised device, malicious browser extension, or a look-alike domain. Use a trusted device, confirm the domain, clear the workspace when finished, and prefer a dedicated authenticator or encrypted vault for long-term storage.',
   },
   {
     question: 'Does 2FACode store my secret keys or generated codes?',
@@ -254,8 +254,9 @@ const schema = [
         <h2 id="privacy-title">What “browser-only” actually means</h2>
         <p>
           The 2FA code generator is delivered as a static page. Code generation happens inside the tab; the tool does
-          not call a generation API, install analytics, or write authentication data to browser storage. You can inspect
-          the Network panel while generating a 2FA code and reload the page to confirm that the workspace is gone.
+          not call a generation API or write authentication data to browser storage. Optional page analytics may load
+          for traffic measurement and are separate from generation. You can inspect the Network panel while generating
+          a 2FA code and reload the page to confirm that the workspace is gone.
         </p>
         <p>
           That design removes a common risk, but it does not make a browser invulnerable. A malicious extension,

@@ -14,7 +14,7 @@ _What the browser-only claim covers—and what it does not_
 
 The implementation uses `otplib` with its Web Crypto, Noble, and Base32 plugins. Modern browsers use Web Crypto; environments without `crypto.subtle` use the bundled Noble implementation as a local compatibility fallback. Those packages are included during the site build rather than loaded from a third-party CDN at runtime.
 
-The generated deployment artifact also includes a hash-based Content Security Policy. Its script and style hashes are calculated from the final static HTML, framing is denied, and the policy does not use `unsafe-inline`. Network access is limited to the optional feedback endpoint (`connect-src https://feedback.remixtranslator.com`) so the header feedback form can submit without opening a general API surface. This is a defense-in-depth control; the hosting platform must serve the generated `_headers` rules for the response header to take effect.
+The generated deployment artifact also includes a hash-based Content Security Policy. Its script and style hashes are calculated from the final static HTML, framing is denied, and the policy does not use `unsafe-inline`. Network access is limited to Feedback Hub, PageView, and Microsoft Clarity endpoints—not a general TOTP generation API. This is a defense-in-depth control; the hosting platform must serve the generated `_headers` rules for the response header to take effect.
 
 ## Secret lifecycle
 
@@ -26,7 +26,7 @@ When a user submits the generator form:
 4. The result is rendered with DOM text nodes, and the displayed secret is masked.
 5. Clear, reload, or closing the tab removes the in-memory workspace.
 
-The generator does not write authentication data to LocalStorage, SessionStorage, IndexedDB, cookies, URLs, console logs, analytics, or a 2FACode database.
+The generator does not write authentication data to LocalStorage, SessionStorage, IndexedDB, cookies, URLs, console logs, or a 2FACode database. Secrets and codes are not intentionally sent to analytics.
 
 ## Standards and tests
 
@@ -46,9 +46,11 @@ HOTP counter values, SMS codes, push approvals, FIDO2, U2F, passkeys, and provid
 
 - Accidental server-side collection of a TOTP secret during generation
 - Secret retention in application databases or browser storage
-- Third-party analytics and advertising scripts reading the generator page
+- Advertising scripts and shareable secret URLs as part of the generator workflow
 - Accidental disclosure through shareable secret URLs
 - Copying a secret when the user only intended to copy a generated code
+
+Page-level analytics (PageView / Clarity) measure site usage. They are not a generation API and must not receive secrets as intentional product data.
 
 ## Threats this design does not eliminate
 

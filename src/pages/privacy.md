@@ -1,6 +1,6 @@
 ---
 title: 'Privacy Policy'
-description: 'Read how 2FACode handles TOTP secrets, generated codes, theme preferences, hosting logs, cookies, and third-party services.'
+description: 'Read how 2FACode.im handles TOTP secrets, generated codes, theme preferences, hosting logs, cookies, and analytics.'
 layout: '~/layouts/PageLayout.astro'
 ---
 
@@ -10,11 +10,11 @@ _Last updated: July 24, 2026_
 
 ## Summary
 
-2FACode is designed so that TOTP secrets and generated codes do not leave the browser during normal use. The site does not require an account and does not include analytics or advertising scripts.
+2FACode.im is designed so that **TOTP secrets and generated codes do not leave the browser during normal generation**. The site does not require an account and does not run advertising scripts. Lightweight page analytics may run to measure site usage; they are separate from the generator and are not used to store setup keys or codes.
 
 ## 2FA secrets and generated codes
 
-The 2FA code generator processes Base32 secrets and otpauth TOTP URIs in the current browser tab. It does not send that input to a generation API, server database, analytics provider, or advertising service.
+The 2FA code generator processes Base32 secrets and otpauth TOTP URIs in the current browser tab. It does not send that input to a generation API, server database, or advertising service. Secrets and codes are not intentionally submitted to analytics tools.
 
 The generator does not write secrets or generated codes to LocalStorage, SessionStorage, IndexedDB, cookies, URL parameters, or the browser history. Active data exists in page memory and is removed when the workspace is cleared, the page is reloaded, or the tab is closed.
 
@@ -26,21 +26,28 @@ The light or dark theme preference may be stored in LocalStorage so the visual c
 
 Like most static websites, the hosting or network provider may process ordinary request information such as an IP address, timestamp, requested path, user agent, and security events to deliver and protect the site. The 2FA generator does not add a secret to those requests.
 
-The production hosting provider has not yet been locked in. This policy will name the provider before public release if its role materially affects visitors.
+## Analytics
+
+The site may load:
+
+- **PageView** (`app.pageview.app`) for privacy-oriented page analytics (domain-scoped pageviews).
+- **Microsoft Clarity** for delayed, aggregated session insights such as heatmaps and interaction patterns.
+
+These scripts are for product and traffic measurement. They are not a TOTP generation backend. Do not paste secrets into feedback or support channels; keep secrets in the generator workspace only.
 
 ## Third-party services
 
-The production page does not load a TOTP library, font, analytics script, advertisement, or code-generation service from a third-party CDN at runtime. Build dependencies are bundled into the site's static assets.
+Build dependencies for TOTP generation are bundled into the site's static assets rather than loaded from a third-party CDN at runtime for cryptography. Feedback submissions (when you choose to send feedback) go to the project's Feedback Hub endpoint.
 
 Links to external standards and the [public source repository](https://github.com/wxin11011-ship-it/2FACode.im) are normal outbound links. Visiting them is subject to those sites' own policies.
 
 ## Cookies
 
-2FACode does not set tracking cookies. The current implementation does not set an application cookie.
+2FACode.im does not set its own application tracking cookies for generation. Third-party analytics providers may set or use their own storage according to their policies (especially Clarity).
 
 ## Security limitations
 
-Local processing cannot protect a secret from a compromised device, malicious browser extension, look-alike website, screen capture, clipboard monitor, or another person with access to the tab. Use a trusted device, verify `2facode.im`, and clear the workspace after use.
+Local generation cannot protect a secret from a compromised device, malicious browser extension, look-alike website, screen capture, clipboard monitor, or another person with access to the tab. Use a trusted device, verify `2facode.im`, and clear the workspace after use.
 
 ## Changes and contact
 
