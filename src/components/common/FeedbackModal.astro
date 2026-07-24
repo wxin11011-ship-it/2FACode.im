@@ -1,0 +1,561 @@
+---
+/**
+ * Centered feedback modal → Cloudflare Feedback Hub.
+ * Open via [data-feedback-trigger] (header Feedback button).
+ * Production endpoint: https://feedback.remixtranslator.com/api/submit
+ */
+const productName = '2FACode.im';
+const endpoint = 'https://feedback.remixtranslator.com/api/submit';
+---
+
+<div
+  id="tfa-feedback-root"
+  class="tfa-fb-root"
+  hidden
+  data-endpoint={endpoint}
+  data-product={productName}
+>
+  <div class="tfa-fb-overlay" data-feedback-close tabindex="-1"></div>
+  <section
+    class="tfa-fb-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="tfa-fb-title"
+    aria-describedby="tfa-fb-subtitle"
+  >
+    <div class="tfa-fb-form-view">
+      <header class="tfa-fb-header">
+        <div>
+          <h2 id="tfa-fb-title" class="tfa-fb-title">Send feedback</h2>
+          <p id="tfa-fb-subtitle" class="tfa-fb-subtitle">
+            Help improve {productName} — bugs, ideas, or questions are welcome.
+          </p>
+        </div>
+        <button type="button" class="tfa-fb-close" data-feedback-close aria-label="Close feedback form">
+          ×
+        </button>
+      </header>
+
+      <form id="tfa-fb-form" class="tfa-fb-form" novalidate>
+        <fieldset class="tfa-fb-fieldset">
+          <legend class="tfa-fb-label">What's this about?</legend>
+          <div class="tfa-fb-types" role="group" aria-label="Feedback type">
+            <button type="button" class="tfa-fb-type is-active" data-type="bug" aria-pressed="true">
+              Something's not working
+            </button>
+            <button type="button" class="tfa-fb-type" data-type="feature" aria-pressed="false">
+              I have an idea
+            </button>
+            <button type="button" class="tfa-fb-type" data-type="question" aria-pressed="false">
+              I have a question
+            </button>
+            <button type="button" class="tfa-fb-type" data-type="thanks" aria-pressed="false">
+              Just saying thanks
+            </button>
+            <button type="button" class="tfa-fb-type" data-type="other" aria-pressed="false">
+              Something else
+            </button>
+          </div>
+        </fieldset>
+
+        <label class="tfa-fb-field">
+          <span class="tfa-fb-label">Tell us more</span>
+          <textarea
+            name="message"
+            id="tfa-fb-message"
+            required
+            maxlength="5000"
+            rows="4"
+            placeholder="What happened? What would make this better?"></textarea>
+        </label>
+
+        <label class="tfa-fb-field">
+          <span class="tfa-fb-label">Your email <span class="tfa-fb-req">*</span></span>
+          <input
+            name="email"
+            id="tfa-fb-email"
+            type="email"
+            required
+            autocomplete="email"
+            placeholder="you@example.com"
+          />
+          <span class="tfa-fb-helper">Required so we can reply if needed.</span>
+        </label>
+
+        <!-- Honeypot -->
+        <input
+          class="tfa-fb-honeypot"
+          name="website"
+          type="text"
+          tabindex="-1"
+          autocomplete="off"
+          aria-hidden="true"
+        />
+
+        <p id="tfa-fb-error" class="tfa-fb-error" role="alert" hidden></p>
+
+        <button type="submit" id="tfa-fb-submit" class="tfa-fb-submit">Send feedback</button>
+      </form>
+    </div>
+
+    <div class="tfa-fb-success-view" hidden>
+      <button type="button" class="tfa-fb-close tfa-fb-close-success" data-feedback-close aria-label="Close">
+        ×
+      </button>
+      <div class="tfa-fb-success-inner">
+        <p class="tfa-fb-success-title">Thanks — we received it.</p>
+        <p id="tfa-fb-success-body" class="tfa-fb-success-body"></p>
+        <div class="tfa-fb-success-actions">
+          <button type="button" class="tfa-fb-btn-secondary" data-feedback-close>Close</button>
+          <button type="button" class="tfa-fb-submit tfa-fb-submit-inline" id="tfa-fb-again">Send another</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style is:global>
+  .tfa-fb-root {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: none;
+    place-items: center;
+    padding: 16px;
+    color: var(--text, #1d1d1f);
+  }
+
+  .tfa-fb-root.is-open {
+    display: grid;
+  }
+
+  .tfa-fb-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(29, 29, 31, 0.42);
+    backdrop-filter: blur(8px);
+  }
+
+  .dark .tfa-fb-overlay {
+    background: rgba(0, 0, 0, 0.55);
+  }
+
+  .tfa-fb-panel {
+    position: relative;
+    width: min(100% - 32px, 34rem);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: var(--surface-strong, #fff);
+    border: 1px solid var(--hairline, #d2d2d7);
+    border-radius: 1.15rem;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.16);
+    padding: 1.15rem 1.2rem 1.25rem;
+  }
+
+  .tfa-fb-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .tfa-fb-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+    color: var(--text, #1d1d1f);
+  }
+
+  .tfa-fb-subtitle {
+    margin: 0.3rem 0 0;
+    font-size: 0.875rem;
+    color: var(--muted, #6e6e73);
+    line-height: 1.45;
+  }
+
+  .tfa-fb-close {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--hairline, #d2d2d7);
+    border-radius: 10px;
+    background: var(--surface-hover, #f5f5f7);
+    color: var(--text, #1d1d1f);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .tfa-fb-close:hover {
+    filter: brightness(0.97);
+  }
+
+  .tfa-fb-fieldset {
+    border: 0;
+    margin: 0 0 0.9rem;
+    padding: 0;
+  }
+
+  .tfa-fb-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    color: var(--text, #1d1d1f);
+    margin-bottom: 0.4rem;
+  }
+
+  .tfa-fb-req {
+    color: var(--error, #c9342b);
+  }
+
+  .tfa-fb-types {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  @media (min-width: 520px) {
+    .tfa-fb-types {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .tfa-fb-type {
+    text-align: left;
+    min-height: 42px;
+    padding: 0.5rem 0.7rem;
+    border-radius: 0.75rem;
+    border: 1.5px solid var(--hairline, #d2d2d7);
+    background: var(--input-bg, #fafafa);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text, #1d1d1f);
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+
+  .tfa-fb-type:hover {
+    border-color: var(--hairline-strong, #86868b);
+  }
+
+  .tfa-fb-type.is-active {
+    border-color: var(--action, #0071e3);
+    background: color-mix(in srgb, var(--action, #0071e3) 8%, transparent);
+    box-shadow: inset 0 0 0 1px var(--action, #0071e3);
+  }
+
+  .tfa-fb-field {
+    display: block;
+    margin-bottom: 0.85rem;
+  }
+
+  .tfa-fb-field textarea,
+  .tfa-fb-field input[type='email'] {
+    width: 100%;
+    border: 1px solid var(--hairline-strong, #d2d2d7);
+    border-radius: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.9375rem;
+    color: var(--text, #1d1d1f);
+    background: var(--input-bg, #fff);
+    outline: none;
+  }
+
+  .tfa-fb-field textarea:focus,
+  .tfa-fb-field input[type='email']:focus {
+    border-color: var(--action, #0071e3);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--action, #0071e3) 15%, transparent);
+  }
+
+  .tfa-fb-field textarea {
+    resize: vertical;
+    min-height: 110px;
+  }
+
+  .tfa-fb-helper {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.75rem;
+    color: var(--muted, #6e6e73);
+  }
+
+  .tfa-fb-honeypot {
+    position: absolute;
+    left: -9999px;
+    opacity: 0;
+    height: 0;
+    width: 0;
+    pointer-events: none;
+  }
+
+  .tfa-fb-error {
+    margin: 0 0 0.65rem;
+    font-size: 0.8125rem;
+    color: var(--error, #c9342b);
+  }
+
+  .tfa-fb-submit {
+    width: 100%;
+    min-height: 44px;
+    border: none;
+    border-radius: 999px;
+    background: var(--action, #0071e3);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .tfa-fb-submit:hover:not(:disabled) {
+    filter: brightness(1.06);
+  }
+
+  .tfa-fb-submit:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .tfa-fb-submit-inline {
+    width: auto;
+    min-width: 9rem;
+    padding: 0 1.15rem;
+  }
+
+  .tfa-fb-success-view {
+    position: relative;
+    padding: 1.5rem 0.25rem 0.5rem;
+  }
+
+  .tfa-fb-close-success {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .tfa-fb-success-inner {
+    text-align: center;
+    max-width: 28rem;
+    margin: 0 auto;
+    padding: 1rem 0 0.5rem;
+  }
+
+  .tfa-fb-success-title {
+    margin: 0 0 0.65rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text, #1d1d1f);
+  }
+
+  .tfa-fb-success-body {
+    margin: 0 0 1.25rem;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: var(--muted, #6e6e73);
+  }
+
+  .tfa-fb-success-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+
+  .tfa-fb-btn-secondary {
+    min-height: 44px;
+    padding: 0 1.15rem;
+    border-radius: 999px;
+    border: 1px solid var(--hairline, #d2d2d7);
+    background: var(--surface-strong, #fff);
+    color: var(--text, #1d1d1f);
+    font-size: 0.875rem;
+    font-weight: 650;
+    cursor: pointer;
+  }
+</style>
+
+<script>
+  (() => {
+    if (typeof window === 'undefined') return;
+    if ((window as Window & { __tfaFeedbackModal?: boolean }).__tfaFeedbackModal) return;
+    (window as Window & { __tfaFeedbackModal?: boolean }).__tfaFeedbackModal = true;
+
+    const root = document.getElementById('tfa-feedback-root');
+    if (!root) return;
+
+    const endpoint = root.getAttribute('data-endpoint') || '';
+    const productName = root.getAttribute('data-product') || '2FACode';
+    const form = document.getElementById('tfa-fb-form') as HTMLFormElement | null;
+    const formView = root.querySelector('.tfa-fb-form-view') as HTMLElement | null;
+    const successView = root.querySelector('.tfa-fb-success-view') as HTMLElement | null;
+    const errorEl = document.getElementById('tfa-fb-error');
+    const submitBtn = document.getElementById('tfa-fb-submit') as HTMLButtonElement | null;
+    const successBody = document.getElementById('tfa-fb-success-body');
+    const againBtn = document.getElementById('tfa-fb-again');
+    const typeButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('.tfa-fb-type'));
+
+    let selectedType = 'bug';
+    let previousOverflow = '';
+
+    const typeLabels: Record<string, string> = {
+      bug: "Something's not working",
+      feature: 'I have an idea',
+      question: 'I have a question',
+      thanks: 'Just saying thanks',
+      other: 'Something else',
+    };
+
+    const showError = (msg: string) => {
+      if (!errorEl) return;
+      errorEl.hidden = !msg;
+      errorEl.textContent = msg || '';
+    };
+
+    const setType = (type: string) => {
+      selectedType = type;
+      typeButtons.forEach((btn) => {
+        const active = btn.dataset.type === type;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    };
+
+    const showForm = () => {
+      if (formView) formView.hidden = false;
+      if (successView) successView.hidden = true;
+      showError('');
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send feedback';
+      }
+    };
+
+    const showSuccess = (email: string) => {
+      if (formView) formView.hidden = true;
+      if (successView) successView.hidden = false;
+      if (successBody) {
+        successBody.textContent = email
+          ? `Thanks for helping improve ${productName}. We'll review your message and reply if needed.`
+          : `Your feedback was sent. Thanks for helping improve ${productName}.`;
+      }
+    };
+
+    const openModal = () => {
+      showForm();
+      root.hidden = false;
+      root.classList.add('is-open');
+      previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      window.setTimeout(() => document.getElementById('tfa-fb-message')?.focus(), 30);
+    };
+
+    const closeModal = () => {
+      root.classList.remove('is-open');
+      root.hidden = true;
+      document.body.style.overflow = previousOverflow;
+    };
+
+    const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+    typeButtons.forEach((btn) => {
+      btn.addEventListener('click', () => setType(btn.dataset.type || 'other'));
+    });
+
+    root.addEventListener('click', (event) => {
+      const t = event.target as HTMLElement | null;
+      if (t?.closest?.('[data-feedback-close]')) {
+        event.preventDefault();
+        closeModal();
+      }
+    });
+
+    againBtn?.addEventListener('click', () => {
+      form?.reset();
+      setType('bug');
+      showForm();
+      document.getElementById('tfa-fb-message')?.focus();
+    });
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!form || !submitBtn) return;
+
+      const messageInput = form.elements.namedItem('message') as HTMLTextAreaElement;
+      const emailInput = form.elements.namedItem('email') as HTMLInputElement;
+      const websiteInput = form.elements.namedItem('website') as HTMLInputElement;
+      const message = (messageInput?.value || '').trim();
+      const email = (emailInput?.value || '').trim();
+
+      if (!message) {
+        showError('Please write a short message before sending.');
+        messageInput?.focus();
+        return;
+      }
+      if (!email || !isValidEmail(email)) {
+        showError('Please enter a valid email so we can reply if needed.');
+        emailInput?.focus();
+        return;
+      }
+
+      showError('');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            site_domain: window.location.hostname.replace(/^www\./, ''),
+            type: selectedType,
+            subject: `Website feedback: ${typeLabels[selectedType] || selectedType}`,
+            message,
+            email,
+            page_url: window.location.href,
+            referrer: document.referrer || '',
+            website: websiteInput?.value || '',
+            metadata: {
+              language: document.documentElement.lang || 'en',
+              source: 'header-feedback',
+              route: window.location.pathname,
+              product: productName,
+            },
+          }),
+        });
+        const result = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+        if (!response.ok || !result.ok) {
+          throw new Error(result.error || 'submit_failed');
+        }
+        form.reset();
+        setType('bug');
+        showSuccess(email);
+      } catch (err) {
+        const isNetwork = err instanceof TypeError;
+        showError(
+          isNetwork
+            ? "We couldn't send your feedback right now. Check your connection and try again."
+            : 'Something went wrong while sending. Please try again in a moment.',
+        );
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send feedback';
+      }
+    });
+
+    document.addEventListener('click', (event) => {
+      const t = event.target as HTMLElement | null;
+      const trigger = t?.closest?.('[data-feedback-trigger]');
+      if (!trigger) return;
+      event.preventDefault();
+      openModal();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && root.classList.contains('is-open')) closeModal();
+    });
+  })();
+</script>

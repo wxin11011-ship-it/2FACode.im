@@ -1,10 +1,17 @@
 ---
-import favIcon from '~/assets/favicons/favicon.ico';
-import favIconSvg from '~/assets/favicons/favicon.svg';
-import appleTouchIcon from '~/assets/favicons/apple-touch-icon.png';
+/**
+ * Prefer stable public/ URLs so tab icons and iOS home-screen icons work
+ * in both dev and production (not hashed /@fs asset paths).
+ */
+const faviconIco = '/favicon.ico';
+const faviconSvg = '/favicon.svg';
+const appleTouchIcon = '/apple-touch-icon.png';
+const themeColor = '#0071e3';
 ---
 
-<link rel="shortcut icon" href={favIcon} />
-<link rel="icon" type="image/svg+xml" href={favIconSvg.src} />
-<link rel="mask-icon" href={favIconSvg.src} color="#8D46E7" />
-<link rel="apple-touch-icon" sizes="180x180" href={appleTouchIcon.src} />
+<link rel="icon" href={faviconIco} sizes="48x48" />
+<link rel="icon" href={faviconSvg} type="image/svg+xml" />
+<link rel="mask-icon" href={faviconSvg} color={themeColor} />
+<link rel="apple-touch-icon" sizes="180x180" href={appleTouchIcon} />
+<meta name="theme-color" content={themeColor} />
+<meta name="msapplication-TileColor" content={themeColor} />

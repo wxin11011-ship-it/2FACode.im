@@ -7,31 +7,7 @@ import { UI } from 'astrowind:config';
     window.twoFactorUiInitialized = true;
 
     const header = document.getElementById('header');
-    const menuButton = document.querySelector('[data-aw-toggle-menu]');
-    const navigation = document.getElementById('site-navigation');
-    const actionBar = document.querySelector('#header > div > div:last-child');
     const themeButton = document.querySelector('[data-aw-toggle-color-scheme]');
-
-    function setMenuOpen(isOpen) {
-      menuButton?.classList.toggle('expanded', isOpen);
-      menuButton?.setAttribute('aria-expanded', String(isOpen));
-      document.body.classList.toggle('overflow-hidden', isOpen);
-      header?.classList.toggle('h-screen', isOpen);
-      header?.classList.toggle('expanded', isOpen);
-      header?.classList.toggle('bg-page', isOpen);
-      navigation?.classList.toggle('hidden', !isOpen);
-      actionBar?.classList.toggle('hidden', !isOpen);
-    }
-
-    menuButton?.addEventListener('click', () => {
-      setMenuOpen(menuButton.getAttribute('aria-expanded') !== 'true');
-    });
-
-    navigation?.addEventListener('click', (event) => {
-      if (event.target.closest('a')) setMenuOpen(false);
-    });
-
-    window.matchMedia('(max-width: 767px)').addEventListener('change', () => setMenuOpen(false));
 
     const isDark = document.documentElement.classList.contains('dark');
     themeButton?.setAttribute('aria-pressed', String(isDark));

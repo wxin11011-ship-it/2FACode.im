@@ -14,7 +14,7 @@ _What the browser-only claim covers—and what it does not_
 
 The implementation uses `otplib` with its Web Crypto, Noble, and Base32 plugins. Modern browsers use Web Crypto; environments without `crypto.subtle` use the bundled Noble implementation as a local compatibility fallback. Those packages are included during the site build rather than loaded from a third-party CDN at runtime.
 
-The generated deployment artifact also includes a hash-based Content Security Policy. Its script and style hashes are calculated from the final static HTML, `connect-src` is set to `none`, framing is denied, and the policy does not use `unsafe-inline`. This is a defense-in-depth control; the hosting platform must serve the generated `_headers` rules for the response header to take effect.
+The generated deployment artifact also includes a hash-based Content Security Policy. Its script and style hashes are calculated from the final static HTML, framing is denied, and the policy does not use `unsafe-inline`. Network access is limited to the optional feedback endpoint (`connect-src https://feedback.remixtranslator.com`) so the header feedback form can submit without opening a general API surface. This is a defense-in-depth control; the hosting platform must serve the generated `_headers` rules for the response header to take effect.
 
 ## Secret lifecycle
 

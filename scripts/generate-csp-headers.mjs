@@ -54,7 +54,8 @@ export function buildPolicy(scriptHashes, styleHashes) {
     ["style-src 'self'", ...styles].join(' '),
     "img-src 'self' data:",
     "font-src 'self'",
-    "connect-src 'none'",
+    // Feedback modal posts JSON to the shared Feedback Hub only.
+    "connect-src https://feedback.remixtranslator.com",
     "media-src 'none'",
     "frame-src 'none'",
     "worker-src 'none'",

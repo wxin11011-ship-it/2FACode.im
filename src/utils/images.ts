@@ -66,43 +66,62 @@ export const adaptOpenGraphImages = async (
 
   const adaptedImages = await Promise.all(
     images.map(async (image) => {
-      if (image?.url) {
-        const resolvedImage = (await findImage(image.url)) as ImageMetadata | string | undefined;
-        if (!resolvedImage) {
+      if (!image?.url) {
+        return { url: '' };
+      }
+
+      // Stable public / absolute assets — pass through for social crawlers.
+      // Avoids dev `/_image?href=@fs...` URLs that break OG/Twitter previews.
+      if (typeof image.url === 'string') {
+        if (image.url.startsWith('http://') || image.url.startsWith('https://')) {
           return {
-            url: '',
-          };
-        }
-
-        let _image: OptimizedImage | undefined;
-
-        if (
-          typeof resolvedImage === 'string' &&
-          (resolvedImage.startsWith('http://') || resolvedImage.startsWith('https://')) &&
-          isUnpicCompatible(resolvedImage)
-        ) {
-          _image = (await unpicOptimizer(resolvedImage, [defaultWidth], defaultWidth, defaultHeight, 'jpg'))[0];
-        } else if (resolvedImage) {
-          const dimensions =
-            typeof resolvedImage !== 'string' && resolvedImage?.width <= defaultWidth
-              ? [resolvedImage?.width, resolvedImage?.height]
-              : [defaultWidth, defaultHeight];
-          _image = (await astroAssetsOptimizer(resolvedImage, [dimensions[0]], dimensions[0], dimensions[1], 'jpg'))[0];
-        }
-
-        if (typeof _image === 'object') {
-          return {
-            url: 'src' in _image && typeof _image.src === 'string' ? String(new URL(_image.src, astroSite)) : '',
-            width: 'width' in _image && typeof _image.width === 'number' ? _image.width : undefined,
-            height: 'height' in _image && typeof _image.height === 'number' ? _image.height : undefined,
+            url: image.url,
+            width: image.width || defaultWidth,
+            height: image.height || defaultHeight,
             alt: image.alt,
           };
         }
+        if (image.url.startsWith('/')) {
+          return {
+            url: String(new URL(image.url, astroSite || 'https://2facode.im')),
+            width: image.width || defaultWidth,
+            height: image.height || defaultHeight,
+            alt: image.alt,
+          };
+        }
+      }
+
+      const resolvedImage = (await findImage(image.url)) as ImageMetadata | string | undefined;
+      if (!resolvedImage) {
         return {
           url: '',
         };
       }
 
+      let _image: OptimizedImage | undefined;
+
+      if (
+        typeof resolvedImage === 'string' &&
+        (resolvedImage.startsWith('http://') || resolvedImage.startsWith('https://')) &&
+        isUnpicCompatible(resolvedImage)
+      ) {
+        _image = (await unpicOptimizer(resolvedImage, [defaultWidth], defaultWidth, defaultHeight, 'jpg'))[0];
+      } else if (resolvedImage) {
+        const dimensions =
+          typeof resolvedImage !== 'string' && resolvedImage?.width <= defaultWidth
+            ? [resolvedImage?.width, resolvedImage?.height]
+            : [defaultWidth, defaultHeight];
+        _image = (await astroAssetsOptimizer(resolvedImage, [dimensions[0]], dimensions[0], dimensions[1], 'jpg'))[0];
+      }
+
+      if (typeof _image === 'object') {
+        return {
+          url: 'src' in _image && typeof _image.src === 'string' ? String(new URL(_image.src, astroSite)) : '',
+          width: 'width' in _image && typeof _image.width === 'number' ? _image.width : undefined,
+          height: 'height' in _image && typeof _image.height === 'number' ? _image.height : undefined,
+          alt: image.alt,
+        };
+      }
       return {
         url: '',
       };

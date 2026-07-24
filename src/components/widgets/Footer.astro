@@ -37,9 +37,16 @@ const { socialLinks = [], secondaryLinks = [], links = [], footNote = '', theme 
     <div class="grid grid-cols-12 gap-4 gap-y-8 sm:gap-8 py-8 md:py-12">
       <div class="col-span-12 lg:col-span-4">
         <div class="mb-2">
-          <a class="inline-block font-bold text-xl text-gray-900 dark:text-white" href={getHomePermalink()}
-            >{SITE?.name}</a
+          <a
+            class="inline-flex items-center font-bold text-xl text-gray-900 dark:text-white no-underline hover:opacity-90"
+            href={getHomePermalink()}
+            aria-label={SITE?.name || '2FACode.im'}
           >
+            <span class="footer-brand-mark" aria-hidden="true"><span></span><span></span></span>
+            <span class="footer-brand-word">
+              {(SITE?.name || '2FACode.im').replace(/\.im$/i, '')}<span class="footer-brand-tld">.im</span>
+            </span>
+          </a>
         </div>
         <div class="text-sm text-gray-500 dark:text-gray-400 flex gap-1 flex-wrap">
           {
@@ -107,3 +114,52 @@ const { socialLinks = [], secondaryLinks = [], links = [], footNote = '', theme 
     </div>
   </div>
 </footer>
+
+<style>
+  .footer-brand-mark {
+    position: relative;
+    display: inline-grid;
+    width: 1.45rem;
+    height: 1.45rem;
+    margin-right: 0.5rem;
+    place-items: center;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 0.45rem;
+    background: #fff;
+  }
+
+  :global(.dark) .footer-brand-mark {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: #181819;
+  }
+
+  .footer-brand-mark span {
+    position: absolute;
+    width: 0.65rem;
+    height: 0.65rem;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+  }
+
+  .footer-brand-mark span:first-child {
+    transform: translate(-0.18rem, -0.06rem);
+  }
+
+  .footer-brand-mark span:last-child {
+    transform: translate(0.18rem, 0.06rem);
+    border-color: #0071e3;
+  }
+
+  .footer-brand-word {
+    letter-spacing: -0.02em;
+  }
+
+  .footer-brand-tld {
+    color: #6e6e73;
+    font-weight: 650;
+  }
+
+  :global(.dark) .footer-brand-tld {
+    color: #a1a1a6;
+  }
+</style>

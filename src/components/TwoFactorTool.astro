@@ -1,14 +1,12 @@
+---
+import { GITHUB_REPO_URL } from '~/navigation';
+---
+
 <section id="generator" class="tool-wrap" aria-labelledby="generator-title">
   <div class="tool-card" data-totp-tool>
     <div class="tool-topline">
-      <div>
-        <p class="eyebrow">Private workspace</p>
-        <h2 id="generator-title">Generate one code or a full batch</h2>
-      </div>
-      <div class="local-status" title="Code generation runs in this browser">
-        <span aria-hidden="true"></span>
-        Browser only
-      </div>
+      <h2 id="generator-title">Paste secrets, generate codes</h2>
+      <p class="local-status" title="Code generation runs in this browser">Browser only</p>
     </div>
 
     <form class="tool-form" data-totp-form novalidate>
@@ -20,56 +18,38 @@
         id="totp-input"
         data-totp-input
         name="secrets"
-        rows="7"
+        rows="6"
         autocomplete="off"
         autocapitalize="none"
         spellcheck="false"
-        placeholder={'Personal | GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ\nWork | BASE32SECRET\notpauth://totp/...'}
+        placeholder={'Paste one secret per line…\nAccount name | BASE32SECRET\notpauth://totp/…'}
         aria-describedby="input-help input-errors"></textarea>
       <div id="input-help" class="input-help">
-        <p>One entry per line. Use a Base32 secret, <code>Label | SECRET</code>, or an <code>otpauth://</code> URI.</p>
-        <button type="button" class="text-button" data-demo>Use a public demo key</button>
+        <p>Gray text is only a hint — paste to replace it. One secret per line, up to 50.</p>
+        <button type="button" class="text-button" data-demo>Try demo key</button>
       </div>
 
       <div id="input-errors" class="input-errors" data-errors role="alert" aria-live="polite" hidden></div>
 
       <div class="form-actions">
-        <button type="submit" class="primary-button">
-          <span>Generate codes</span>
-          <svg viewBox="0 0 20 20" aria-hidden="true">
-            <path
-              d="M4 10h12m-5-5 5 5-5 5"
-              fill="none"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.7"></path>
-          </svg>
-        </button>
-        <p><strong>Nothing is uploaded.</strong> Your input stays in this tab's memory.</p>
+        <button type="submit" class="primary-button">Generate codes</button>
+        <p class="trust-note">
+          Nothing is stored.
+          <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">View source</a>
+        </p>
       </div>
     </form>
 
     <div class="results" data-results hidden aria-live="polite">
       <div class="results-heading">
-        <div>
-          <p class="eyebrow">Live codes</p>
-          <h3 data-results-title>Generated codes</h3>
-        </div>
+        <h3 data-results-title>Generated codes</h3>
         <div class="result-actions">
           <button type="button" class="secondary-button" data-copy-all>Copy all</button>
           <button type="button" class="secondary-button subtle" data-clear>Clear</button>
         </div>
       </div>
       <div class="code-list" data-code-list></div>
-      <p class="result-note">Codes refresh automatically. Clear the workspace when you are finished.</p>
-    </div>
-
-    <div class="tool-proof" aria-label="Privacy properties">
-      <span>No account</span>
-      <span>No secret storage</span>
-      <span>No analytics</span>
-      <span>RFC 6238</span>
+      <p class="result-note">Codes refresh automatically. Clear when you are done.</p>
     </div>
   </div>
 </section>
@@ -336,70 +316,47 @@
   .tool-wrap {
     width: min(100% - 1.5rem, 58rem);
     margin: 0 auto;
-    scroll-margin-top: 6rem;
+    scroll-margin-top: 4.5rem;
   }
 
   .tool-card {
     overflow: hidden;
     border: 1px solid var(--hairline);
-    border-radius: 1.75rem;
+    border-radius: 1rem;
     background: var(--surface-strong);
-    box-shadow:
-      0 2rem 5rem rgba(0, 0, 0, 0.09),
-      inset 0 1px rgba(255, 255, 255, 0.5);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.04);
   }
 
   .tool-topline,
   .results-heading {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 1.5rem;
-    padding: 1.5rem 1.5rem 0;
-  }
-
-  .eyebrow {
-    margin: 0 0 0.35rem;
-    color: var(--muted);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
+    gap: 1rem;
+    padding: 1.05rem 1.15rem 0;
   }
 
   .tool-topline h2,
   .results-heading h3 {
     margin: 0;
     color: var(--text);
-    font-size: clamp(1.25rem, 3vw, 1.6rem);
-    line-height: 1.15;
-    letter-spacing: -0.025em;
+    font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+    font-weight: 650;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
   }
 
   .local-status {
-    display: inline-flex;
+    margin: 0;
     flex: 0 0 auto;
-    align-items: center;
-    gap: 0.45rem;
-    border: 1px solid var(--hairline);
-    border-radius: 999px;
-    padding: 0.48rem 0.7rem;
     color: var(--muted);
-    background: var(--surface-soft);
     font-size: 0.75rem;
-    font-weight: 650;
-  }
-
-  .local-status span {
-    width: 0.45rem;
-    height: 0.45rem;
-    border-radius: 50%;
-    background: var(--success);
-    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--success) 15%, transparent);
+    font-weight: 500;
+    letter-spacing: 0;
   }
 
   .tool-form {
-    padding: 1.5rem;
+    padding: 0.95rem 1.15rem 1.15rem;
   }
 
   .field-heading,
@@ -436,15 +393,15 @@
   textarea {
     display: block;
     width: 100%;
-    min-height: 11rem;
+    min-height: 8.75rem;
     resize: vertical;
     border: 1px solid var(--hairline-strong);
-    border-radius: 1.15rem;
-    padding: 1rem;
+    border-radius: 0.75rem;
+    padding: 0.85rem 0.9rem;
     color: var(--text);
     background: var(--input-bg);
     font:
-      500 0.9rem/1.65 ui-monospace,
+      500 0.875rem/1.6 ui-monospace,
       SFMono-Regular,
       Menlo,
       Monaco,
@@ -452,18 +409,31 @@
       monospace;
     outline: none;
     transition:
-      border-color 160ms ease,
-      box-shadow 160ms ease,
-      background 160ms ease;
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      background 140ms ease;
   }
 
   textarea::placeholder {
     color: var(--placeholder);
+    opacity: 0.72;
+    font-weight: 400;
+  }
+
+  /* WebKit/Blink need explicit vendor rule for multi-line textarea placeholders */
+  textarea::-webkit-input-placeholder {
+    color: var(--placeholder);
+    opacity: 0.72;
+  }
+
+  textarea::-moz-placeholder {
+    color: var(--placeholder);
+    opacity: 0.72;
   }
 
   textarea:focus {
     border-color: var(--action);
-    box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--action) 14%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--action) 12%, transparent);
     background: var(--surface-strong);
   }
 
@@ -514,64 +484,66 @@
   }
 
   .form-actions {
-    margin-top: 1.15rem;
+    margin-top: 1rem;
   }
 
-  .form-actions p {
-    max-width: 19rem;
+  .form-actions p,
+  .trust-note {
+    max-width: 16rem;
     margin: 0;
     text-align: right;
+    font-weight: 400;
+    line-height: 1.45;
   }
 
-  .form-actions strong {
-    color: var(--text);
+  .trust-note a {
+    color: var(--action);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
+  }
+
+  .trust-note a:hover {
+    filter: brightness(1.05);
   }
 
   .primary-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.6rem;
-    min-height: 3rem;
+    min-height: 2.75rem;
     border: 0;
-    border-radius: 999px;
-    padding: 0.8rem 1.25rem;
+    border-radius: 0.65rem;
+    padding: 0.7rem 1.1rem;
     color: white;
     background: var(--action);
-    box-shadow: 0 0.5rem 1.4rem color-mix(in srgb, var(--action) 24%, transparent);
-    font-size: 0.9rem;
-    font-weight: 750;
+    font-size: 0.875rem;
+    font-weight: 650;
     cursor: pointer;
     transition:
-      filter 160ms ease,
-      transform 100ms ease-out;
+      background 140ms ease,
+      transform 90ms ease-out;
   }
 
   .primary-button:hover {
-    filter: brightness(1.06);
+    background: color-mix(in srgb, var(--action) 88%, black);
   }
 
   .primary-button:active,
   .secondary-button:active,
   .copy-button:active,
   .text-button:active {
-    transform: scale(0.975);
-  }
-
-  .primary-button svg {
-    width: 1rem;
-    height: 1rem;
+    transform: scale(0.98);
   }
 
   .results {
     border-top: 1px solid var(--hairline);
     background: var(--results-bg);
-    animation: materialize 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
   .results-heading {
     align-items: center;
-    padding-bottom: 1.1rem;
+    padding-bottom: 0.95rem;
   }
 
   .result-actions {
@@ -582,14 +554,15 @@
   .secondary-button,
   .copy-button {
     border: 1px solid var(--hairline);
-    border-radius: 999px;
-    padding: 0.55rem 0.8rem;
+    border-radius: 0.55rem;
+    padding: 0.45rem 0.7rem;
     color: var(--text);
     background: var(--surface-strong);
     font-size: 0.75rem;
+    font-weight: 600;
     transition:
-      background 160ms ease,
-      transform 100ms ease-out;
+      background 140ms ease,
+      transform 90ms ease-out;
   }
 
   .secondary-button:hover,
@@ -599,6 +572,10 @@
 
   .secondary-button.subtle {
     color: var(--muted);
+  }
+
+  .secondary-button.subtle:hover {
+    color: var(--text);
   }
 
   .code-list {
@@ -612,10 +589,10 @@
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 1rem;
-    min-height: 5rem;
+    min-height: 4.25rem;
     border: 1px solid var(--hairline);
-    border-radius: 1.05rem;
-    padding: 0.8rem 0.9rem 0.8rem 1rem;
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.8rem 0.7rem 0.9rem;
     background: var(--surface-strong);
   }
 
@@ -683,49 +660,32 @@
 
   .result-note {
     margin: 0;
-    padding: 0 1.5rem 1.5rem;
-  }
-
-  .tool-proof {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    border-top: 1px solid var(--hairline);
-    background: var(--surface-soft);
-  }
-
-  .tool-proof span {
-    padding: 0.75rem 0.5rem;
-    color: var(--muted);
-    font-size: 0.68rem;
-    font-weight: 650;
-    text-align: center;
-  }
-
-  .tool-proof span + span {
-    border-left: 1px solid var(--hairline);
-  }
-
-  @keyframes materialize {
-    from {
-      opacity: 0;
-      transform: translateY(0.5rem) scale(0.995);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
+    padding: 0 1.15rem 1.15rem;
   }
 
   @media (max-width: 640px) {
     .tool-card {
-      border-radius: 1.35rem;
+      border-radius: 0.9rem;
     }
 
     .tool-topline,
     .results-heading,
     .tool-form {
-      padding-left: 1rem;
-      padding-right: 1rem;
+      padding-left: 0.95rem;
+      padding-right: 0.95rem;
+    }
+
+    .tool-form {
+      padding-top: 0.85rem;
+      padding-bottom: 1rem;
+    }
+
+    textarea {
+      min-height: 7.25rem;
+    }
+
+    .primary-button {
+      width: 100%;
     }
 
     .tool-topline,
@@ -735,12 +695,10 @@
       flex-direction: column;
     }
 
-    .form-actions p {
+    .form-actions p,
+    .trust-note {
       text-align: left;
-    }
-
-    .primary-button {
-      width: 100%;
+      max-width: none;
     }
 
     :global(.code-row) {
@@ -751,25 +709,9 @@
       justify-content: space-between;
     }
 
-    .tool-proof {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    .tool-proof span:nth-child(3) {
-      border-left: 0;
-      border-top: 1px solid var(--hairline);
-    }
-
-    .tool-proof span:nth-child(4) {
-      border-top: 1px solid var(--hairline);
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .results {
-      animation: none;
-    }
-
     .primary-button,
     .secondary-button,
     .copy-button,

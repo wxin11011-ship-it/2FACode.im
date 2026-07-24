@@ -4,26 +4,15 @@ import { getPermalink } from './utils/permalinks';
 // 导航配置 - 修改这里来自定义你的导航
 // ============================================
 
+/** Public source repository (open-source signal in the header). */
+export const GITHUB_REPO_URL = 'https://github.com/wxin11011-ship-it/2FACode.im';
+
 export const headerData = {
-  links: [
-    {
-      text: 'How it works',
-      href: getPermalink('/#how-title'),
-    },
-    {
-      text: 'Security',
-      href: getPermalink('/#security'),
-    },
-    { text: 'FAQ', href: getPermalink('/#faq') },
-    { text: 'Source', href: 'https://github.com/wxin11011-ship-it/2FACode.im' },
-  ],
-  actions: [
-    {
-      text: 'Generate codes',
-      href: getPermalink('/#generator'),
-      variant: 'primary' as const,
-    },
-  ],
+  // Tool site: keep the top bar free of section links; open source + feedback live as icons.
+  links: [] as Array<{ text?: string; href?: string }>,
+  actions: [] as Array<{ text: string; href: string; variant?: 'primary' | 'secondary' | 'tertiary' | 'link' }>,
+  githubUrl: GITHUB_REPO_URL,
+  showFeedback: true,
 };
 
 export const footerData = {
@@ -34,11 +23,11 @@ export const footerData = {
     { text: 'Terms', href: getPermalink('/terms') },
     { text: 'Privacy', href: getPermalink('/privacy') },
     { text: 'Disclaimer', href: getPermalink('/disclaimer') },
-    { text: 'Source', href: 'https://github.com/wxin11011-ship-it/2FACode.im' },
-    { text: 'Issues', href: 'https://github.com/wxin11011-ship-it/2FACode.im/issues' },
+    { text: 'Source', href: GITHUB_REPO_URL },
+    { text: 'Issues', href: `${GITHUB_REPO_URL}/issues` },
   ],
   socialLinks: [],
   footNote: `
-    <span class="text-gray-500">© ${new Date().getFullYear()} 2FACode. Browser-only TOTP.</span>
+    <span class="text-gray-500">© ${new Date().getFullYear()} 2FACode.im. Browser-only TOTP.</span>
   `,
 };

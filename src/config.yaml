@@ -1,5 +1,5 @@
 site:
-  name: 2FACode
+  name: 2FACode.im
   site: 'https://2facode.im'
   base: '/'
   trailingSlash: false
@@ -8,15 +8,20 @@ site:
 
 metadata:
   title:
-    default: 2FACode
-    template: '%s — 2FACode'
+    default: 2FACode.im
+    template: '%s — 2FACode.im'
   description: 'Private, browser-only 2FA and TOTP code generation for one secret or a batch.'
   robots:
     index: true
     follow: true
   openGraph:
-    site_name: 2FACode
+    site_name: 2FACode.im
     type: website
+    images:
+      - url: 'https://2facode.im/images/2facode-og.png'
+        width: 1200
+        height: 630
+        alt: '2FACode.im — private browser-based 2FA code generator'
 
 # 国际化配置（可选）
 i18n:

@@ -30,7 +30,7 @@ The build must finish its CSP postbuild step. Do not commit a deployment artifac
 - Never add a generation API, analytics, telemetry, advertising script, or runtime third-party CDN without an explicit project decision.
 - Never persist a TOTP secret or generated code in LocalStorage, SessionStorage, IndexedDB, cookies, URLs, logs, or analytics.
 - Never include a real secret, password, recovery code, session token, or live TOTP in source, tests, issues, screenshots, or pull requests.
-- Keep `connect-src 'none'` unless a reviewed product requirement changes the architecture.
+- Keep `connect-src` minimal. The only approved outbound endpoint is `https://feedback.remixtranslator.com` for the header feedback form. Do not widen it without a reviewed product requirement.
 - Render user-controlled labels and errors with DOM text APIs, not raw HTML.
 - Preserve explicit input limits and error redaction.
 

@@ -15,14 +15,22 @@ const metadata = {
     title: '2FA Code Generator — Private, Fast, Browser-Only',
     description: 'Generate one or up to 50 TOTP codes locally in your browser. No uploads, account, or secret storage.',
     type: 'website',
+    siteName: '2FACode.im',
     images: [
       {
-        url: '~/assets/images/2facode-og.png',
+        // Stable public URL for social/search crawlers (not Astro asset optimizer paths)
+        url: 'https://2facode.im/images/2facode-og.png',
         width: 1200,
         height: 630,
-        alt: '2FACode private browser-based 2FA code generator',
+        alt: '2FACode.im private browser-based 2FA code generator',
       },
     ],
+  },
+  twitter: {
+    cardType: 'summary_large_image',
+    title: '2FA Code Generator — Private, Fast, Browser-Only',
+    description: 'Generate one or up to 50 TOTP codes locally in your browser. No uploads, account, or secret storage.',
+    image: 'https://2facode.im/images/2facode-og.png',
   },
 };
 
@@ -93,14 +101,14 @@ const schema = [
   {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: '2FACode',
+    name: '2FACode.im',
     url: 'https://2facode.im/',
     description: 'A browser-only 2FA and TOTP code generator for one or multiple secrets.',
   },
   {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: '2FACode',
+    name: '2FACode.im',
     applicationCategory: 'SecurityApplication',
     operatingSystem: 'Any modern web browser',
     url: 'https://2facode.im/',
@@ -140,26 +148,17 @@ const schema = [
 
   <main id="main-content" class="home-page">
     <section class="hero-section">
-      <div class="ambient ambient-one" aria-hidden="true"></div>
-      <div class="ambient ambient-two" aria-hidden="true"></div>
       <div class="hero-copy">
-        <p class="hero-kicker"><span></span> Private by design</p>
         <h1>2FA Code Generator</h1>
         <p class="hero-intro">
-          Generate one or up to 50 live TOTP codes without sending a secret anywhere. This 2FA code generator runs in
-          your browser, stores nothing, and keeps the fastest path visible.
+          Generate one or up to 50 TOTP codes in this browser. Secrets stay in the tab—nothing is uploaded or stored.
         </p>
-        <div class="hero-trust" aria-label="Product principles">
-          <span>Local processing</span>
-          <span>No account</span>
-          <span>No tracking</span>
-        </div>
       </div>
 
       <TwoFactorTool />
 
       <p class="hero-footnote">
-        Built for standard TOTP—not SMS codes, account recovery, or bypassing two-factor authentication.
+        For standard TOTP only—not SMS codes, account recovery, or bypassing two-factor authentication.
       </p>
     </section>
 
@@ -211,7 +210,7 @@ const schema = [
       <div class="showcase-grid">
         <figure>
           <img
-            src="/images/bulk-2fa-codes.svg"
+            src="/images/bulk-2fa-codes.webp"
             width="480"
             height="320"
             loading="lazy"
@@ -222,7 +221,7 @@ const schema = [
         </figure>
         <figure>
           <img
-            src="/images/browser-only-2fa.svg"
+            src="/images/browser-only-2fa.webp"
             width="480"
             height="320"
             loading="lazy"
@@ -235,7 +234,7 @@ const schema = [
         </figure>
         <figure>
           <img
-            src="/images/totp-30-second-cycle.svg"
+            src="/images/totp-30-second-cycle.webp"
             width="480"
             height="320"
             loading="lazy"
@@ -382,7 +381,7 @@ const schema = [
     --results-bg: #f7f7f8;
     --text: #1d1d1f;
     --muted: #6e6e73;
-    --placeholder: #9a9a9f;
+    --placeholder: #aeaeb2;
     --hairline: rgba(0, 0, 0, 0.08);
     --hairline-strong: rgba(0, 0, 0, 0.14);
     --action: #0071e3;
@@ -410,6 +409,7 @@ const schema = [
 
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 4.5rem;
   }
 
   body {
@@ -456,6 +456,16 @@ const schema = [
     color: var(--muted);
   }
 
+  #header [data-header-actions] a,
+  #header [data-header-actions] button {
+    color: var(--muted);
+  }
+
+  #header [data-header-actions] a:hover,
+  #header [data-header-actions] button:hover {
+    color: var(--text);
+  }
+
   .home-page {
     overflow: hidden;
     background: var(--canvas);
@@ -463,113 +473,56 @@ const schema = [
 
   .hero-section {
     position: relative;
-    min-height: calc(100svh - 4rem);
-    padding: clamp(5rem, 11vw, 8.5rem) 0 4rem;
-    isolation: isolate;
-  }
-
-  .ambient {
-    position: absolute;
-    z-index: -1;
-    border-radius: 50%;
-    filter: blur(1px);
-    pointer-events: none;
-  }
-
-  .ambient-one {
-    top: -18rem;
-    left: 50%;
-    width: 52rem;
-    height: 35rem;
-    transform: translateX(-50%);
-    background: radial-gradient(circle, color-mix(in srgb, var(--action) 10%, transparent), transparent 68%);
-  }
-
-  .ambient-two {
-    top: 18rem;
-    right: -16rem;
-    width: 34rem;
-    height: 34rem;
-    background: radial-gradient(circle, color-mix(in srgb, var(--success) 7%, transparent), transparent 70%);
+    /* Dense tool-first first screen — title is quiet framing, not a landing poster */
+    padding: clamp(0.85rem, 1.6vw, 1.25rem) 0 clamp(1.5rem, 2.5vw, 2.25rem);
   }
 
   .hero-copy {
-    width: min(100% - 2rem, 62rem);
-    margin: 0 auto clamp(2rem, 5vw, 3.5rem);
+    width: min(100% - 2rem, 40rem);
+    margin: 0 auto 0.95rem;
     text-align: center;
   }
 
-  .hero-kicker,
   .section-kicker {
     margin: 0 0 0.8rem;
     color: var(--muted);
     font-size: 0.75rem;
-    font-weight: 750;
-    letter-spacing: 0.09em;
+    font-weight: 650;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-  }
-
-  .hero-kicker {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .hero-kicker span {
-    width: 0.48rem;
-    height: 0.48rem;
-    border-radius: 50%;
-    background: var(--success);
-    box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--success) 14%, transparent);
   }
 
   .hero-copy h1 {
     margin: 0;
     color: var(--text);
-    font-size: clamp(3rem, 8.7vw, 6.8rem);
-    font-weight: 760;
-    line-height: 0.98;
-    letter-spacing: -0.055em;
+    font-size: clamp(1.85rem, 3.8vw, 2.65rem);
+    font-weight: 700;
+    line-height: 1.12;
+    letter-spacing: -0.028em;
   }
 
   .hero-intro {
-    max-width: 48rem;
-    margin: 1.5rem auto 0;
+    max-width: 34rem;
+    margin: 0.55rem auto 0;
     color: var(--muted);
-    font-size: clamp(1rem, 2.2vw, 1.3rem);
-    line-height: 1.55;
-  }
-
-  .hero-trust {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.45rem;
-    margin-top: 1.35rem;
-  }
-
-  .hero-trust span {
-    border: 1px solid var(--hairline);
-    border-radius: 999px;
-    padding: 0.42rem 0.68rem;
-    color: var(--muted);
-    background: var(--surface-soft);
-    font-size: 0.72rem;
-    font-weight: 650;
+    font-size: clamp(0.92rem, 1.35vw, 1.02rem);
+    line-height: 1.5;
+    font-weight: 400;
   }
 
   .hero-footnote {
-    width: min(100% - 2rem, 48rem);
-    margin: 1rem auto 0;
+    width: min(100% - 2rem, 40rem);
+    margin: 0.7rem auto 0;
     color: var(--muted);
-    font-size: 0.76rem;
+    font-size: 0.72rem;
+    line-height: 1.45;
     text-align: center;
   }
 
   .content-section {
     width: min(100% - 2rem, 72rem);
     margin: 0 auto;
-    padding: clamp(4.5rem, 10vw, 8rem) 0;
+    padding: clamp(3rem, 6vw, 5rem) 0;
   }
 
   .content-section + .content-section {
@@ -578,7 +531,7 @@ const schema = [
 
   .section-heading {
     max-width: 46rem;
-    margin-bottom: 3rem;
+    margin-bottom: 2.5rem;
   }
 
   .section-heading h2,
@@ -658,6 +611,8 @@ const schema = [
     display: block;
     width: 100%;
     height: auto;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
     background: var(--surface-soft);
   }
 
@@ -780,10 +735,10 @@ const schema = [
 
   .final-section {
     width: min(100% - 2rem, 70rem);
-    margin: 2rem auto 6rem;
+    margin: 1.5rem auto 4.5rem;
     border: 1px solid var(--hairline);
     border-radius: 2rem;
-    padding: clamp(3rem, 8vw, 6rem) 1.5rem;
+    padding: clamp(3rem, 6vw, 5rem) 1.5rem;
     background: var(--surface-strong);
     text-align: center;
   }
@@ -840,7 +795,20 @@ const schema = [
 
   @media (max-width: 640px) {
     .hero-section {
-      padding-top: 4.75rem;
+      padding: 0.7rem 0 1.35rem;
+    }
+
+    .hero-copy {
+      margin-bottom: 0.8rem;
+    }
+
+    .hero-copy h1 {
+      font-size: clamp(1.7rem, 7.5vw, 2.05rem);
+    }
+
+    .hero-intro {
+      margin-top: 0.45rem;
+      font-size: 0.92rem;
     }
 
     .step-grid,
@@ -849,21 +817,17 @@ const schema = [
     }
 
     .content-section {
-      padding: 4.25rem 0;
+      padding: 2.75rem 0;
     }
 
     .section-heading {
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
-    }
-
-    .ambient {
-      display: none;
     }
 
     .faq-list summary svg,

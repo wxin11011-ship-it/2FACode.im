@@ -29,7 +29,8 @@ test('builds a strict policy without unsafe-inline', () => {
   const policy = buildPolicy([cspHash('alert(1)')], [cspHash('body{color:black}')]);
 
   assert.match(policy, /frame-ancestors 'none'/);
-  assert.match(policy, /connect-src 'none'/);
+  assert.match(policy, /connect-src https:\/\/feedback\.remixtranslator\.com/);
+  assert.doesNotMatch(policy, /connect-src[^;]*'none'/);
   assert.match(policy, /script-src 'self' 'sha256-/);
   assert.doesNotMatch(policy, /unsafe-inline/);
 });

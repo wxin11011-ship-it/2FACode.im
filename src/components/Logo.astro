@@ -1,5 +1,17 @@
+---
+import { SITE } from 'astrowind:config';
+
+const brand = SITE?.name || '2FACode.im';
+// Prefer visual split: product + TLD when name ends with .im
+const match = brand.match(/^(.*?)(\.im)$/i);
+const primary = match ? match[1] : brand;
+const tld = match ? match[2] : '';
+---
+
 <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
-<span class="brand-word">2FA<span>Code</span></span>
+<span class="brand-word"
+  >{primary}{tld ? <span class="brand-tld">{tld}</span> : null}</span
+>
 
 <style>
   .brand-mark {
@@ -39,7 +51,7 @@
     white-space: nowrap;
   }
 
-  .brand-word span {
+  .brand-tld {
     color: var(--muted, #6e6e73);
     font-weight: 650;
   }
