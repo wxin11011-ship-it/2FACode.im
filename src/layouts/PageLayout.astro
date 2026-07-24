@@ -2,6 +2,7 @@
 import Layout from '~/layouts/Layout.astro';
 import Header from '~/components/widgets/Header.astro';
 import Footer from '~/components/widgets/Footer.astro';
+import Breadcrumbs from '~/components/common/Breadcrumbs.astro';
 
 import { headerData, footerData } from '~/navigation';
 
@@ -17,6 +18,8 @@ const resolvedMetadata = {
   ...frontmatter,
   ...metadata,
 };
+const pageTitle =
+  typeof resolvedMetadata.title === 'string' ? resolvedMetadata.title.replace(/\s*[—|-].*$/, '').trim() : '';
 ---
 
 <Layout metadata={resolvedMetadata}>
@@ -27,6 +30,7 @@ const resolvedMetadata = {
     <article
       class="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16 prose prose-gray dark:prose-invert prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline"
     >
+      <Breadcrumbs currentLabel={pageTitle || undefined} class="not-prose" />
       <slot />
     </article>
   </main>

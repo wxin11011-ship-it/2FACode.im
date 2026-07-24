@@ -60,10 +60,23 @@
   padding: 0 5px;
 }
 
+/* Keep open while pointer is on trigger or menu (including the padded bridge). */
 .dropdown:focus .dropdown-menu,
 .dropdown:focus-within .dropdown-menu,
-.dropdown:hover .dropdown-menu {
+.dropdown:hover .dropdown-menu,
+.dropdown .dropdown-menu:hover {
   display: block;
+}
+
+/* Slight delay before hide helps when the pointer briefly leaves the hit area. */
+.dropdown .dropdown-menu {
+  /* shown via display:block above; no animation needed */
+  pointer-events: auto;
+}
+
+.dropdown {
+  /* Enlarge vertical hit area under the label without shifting layout much */
+  padding-bottom: 0;
 }
 
 [astro-icon].icon-light > * {

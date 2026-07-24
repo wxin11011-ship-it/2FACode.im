@@ -63,21 +63,21 @@ const iconButtonClass =
   <div class="absolute inset-0"></div>
   <div
     class:list={[
-      'relative text-default py-2 px-4 sm:px-6 mx-auto w-full flex items-center gap-3',
+      'relative text-default py-2 px-4 sm:px-6 mx-auto w-full grid grid-cols-[1fr_auto_1fr] items-center gap-2',
       { 'max-w-5xl': !isFullWidth },
     ]}
   >
-    <div class="flex items-center min-w-0 shrink-0">
+    <div class="flex items-center min-w-0 justify-self-start">
       <a class="flex items-center" href={getHomePermalink()}>
         <Logo />
       </a>
     </div>
 
     {
-      hasNavLinks && (
+      hasNavLinks ? (
         <nav
           id="site-navigation"
-          class="hidden lg:flex items-center flex-1 min-w-0 text-default"
+          class="hidden lg:flex items-center justify-center justify-self-center text-default"
           aria-label="Main navigation"
         >
           <ul class="flex flex-row items-center gap-0.5">
@@ -98,19 +98,27 @@ const iconButtonClass =
                       {text}
                       <Icon name="tabler:chevron-down" class="w-3.5 h-3.5 opacity-70" />
                     </a>
-                    <ul class="dropdown-menu hidden absolute left-0 top-full z-50 mt-1 min-w-[15rem] rounded-xl border border-gray-200/80 bg-white/95 py-1.5 shadow-lg backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/95">
-                      {childLinks.map((child) =>
-                        child.text && child.href ? (
-                          <li>
-                            <a
-                              class="block px-3.5 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
-                              href={child.href}
-                            >
-                              {child.text}
-                            </a>
-                          </li>
-                        ) : null
-                      )}
+                    {/*
+                      pt-2 = invisible hover bridge (no gap under the trigger).
+                      Outer ul stays hoverable so the menu does not vanish on the way down.
+                    */}
+                    <ul class="dropdown-menu hidden absolute left-1/2 top-full z-50 min-w-[15rem] -translate-x-1/2 pt-2">
+                      <li class="list-none rounded-xl border border-gray-200/80 bg-white/95 py-1.5 shadow-lg backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/95">
+                        <ul class="m-0 list-none p-0">
+                          {childLinks.map((child) =>
+                            child.text && child.href ? (
+                              <li>
+                                <a
+                                  class="block px-3.5 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
+                                  href={child.href}
+                                >
+                                  {child.text}
+                                </a>
+                              </li>
+                            ) : null
+                          )}
+                        </ul>
+                      </li>
                     </ul>
                   </li>
                 );
@@ -130,12 +138,12 @@ const iconButtonClass =
             })}
           </ul>
         </nav>
+      ) : (
+        <div class="justify-self-center" aria-hidden="true" />
       )
     }
 
-    {!hasNavLinks && <div class="flex-1" />}
-
-    <div class="flex items-center gap-0.5 sm:gap-1 shrink-0 ml-auto" data-header-actions>
+    <div class="flex items-center gap-0.5 sm:gap-1 shrink-0 justify-self-end" data-header-actions>
       {
         githubUrl && (
           <a
