@@ -1,0 +1,752 @@
+---
+import { GITHUB_REPO_URL } from '~/navigation';
+---
+
+<section id="qr-generator" class="tool-wrap" aria-labelledby="qr-generator-title">
+  <div class="tool-card" data-qr-tool>
+    <div class="tool-topline">
+      <p class="tool-title" id="qr-generator-title">Build a scannable 2FA QR</p>
+      <p class="local-status" title="QR encoding runs in this browser">Browser only</p>
+    </div>
+
+    <form class="tool-form" data-qr-form novalidate>
+      <div class="field-grid">
+        <div class="field">
+          <label for="qr-account">Account name</label>
+          <input
+            id="qr-account"
+            data-qr-account
+            type="text"
+            name="account"
+            autocomplete="off"
+            maxlength="80"
+            placeholder="e.g. alice@example.com"
+          />
+        </div>
+        <div class="field">
+          <label for="qr-issuer">Issuer <span class="optional">(optional)</span></label>
+          <input
+            id="qr-issuer"
+            data-qr-issuer
+            type="text"
+            name="issuer"
+            autocomplete="off"
+            maxlength="80"
+            placeholder="e.g. GitHub"
+          />
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="field-heading">
+          <label for="qr-secret">Secret key or otpauth URI</label>
+          <button type="button" class="help-toggle" data-qr-help-toggle aria-expanded="false" aria-controls="qr-help">
+            ?
+          </button>
+        </div>
+        <textarea
+          id="qr-secret"
+          data-qr-secret
+          name="secret"
+          rows="3"
+          autocomplete="off"
+          autocapitalize="none"
+          spellcheck="false"
+          placeholder="Paste a Base32 secret or a full otpauth://totp/… URI"></textarea>
+        <div id="qr-help" class="help-panel" hidden>
+          <p>
+            <strong>What you need:</strong> the setup key from the service (Base32), or the full
+            <code>otpauth://totp/…</code> string. The QR is only a scannable wrapper for that shared secret.
+          </p>
+          <ol>
+            <li>Paste the secret (or URI).</li>
+            <li>Add an account name and optional issuer so the authenticator app labels it clearly.</li>
+            <li>Click <strong>Generate QR code</strong>, then scan with your phone app.</li>
+          </ol>
+          <p>Need a live 6-digit code instead? Use the <a href="/">2FA code generator</a>.</p>
+        </div>
+      </div>
+
+      <details class="advanced">
+        <summary>Advanced options <span>(defaults work for most apps)</span></summary>
+        <div class="advanced-grid">
+          <label>
+            Algorithm
+            <select data-qr-algorithm name="algorithm">
+              <option value="sha1" selected>SHA-1</option>
+              <option value="sha256">SHA-256</option>
+              <option value="sha512">SHA-512</option>
+            </select>
+          </label>
+          <label>
+            Digits
+            <select data-qr-digits name="digits">
+              <option value="6" selected>6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+            </select>
+          </label>
+          <label>
+            Period (seconds)
+            <select data-qr-period name="period">
+              <option value="30" selected>30</option>
+              <option value="15">15</option>
+              <option value="60">60</option>
+              <option value="90">90</option>
+              <option value="120">120</option>
+            </select>
+          </label>
+        </div>
+      </details>
+
+      <div id="qr-errors" class="input-errors" data-qr-errors role="alert" aria-live="polite" hidden></div>
+
+      <div class="form-actions">
+        <div class="action-row">
+          <button type="submit" class="primary-button">Generate QR code</button>
+          <button type="button" class="secondary-button" data-qr-demo>Try demo key</button>
+        </div>
+        <p class="trust-note">
+          Nothing is uploaded.
+          <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">View source</a>
+        </p>
+      </div>
+    </form>
+
+    <div class="results" data-qr-results hidden>
+      <div class="results-heading">
+        <h3>Your QR code</h3>
+        <div class="result-actions">
+          <button type="button" class="secondary-button" data-qr-download>Download PNG</button>
+          <button type="button" class="secondary-button" data-qr-copy-uri>Copy otpauth URI</button>
+          <button type="button" class="secondary-button subtle" data-qr-clear>Clear</button>
+        </div>
+      </div>
+
+      <div class="qr-stage">
+        <div class="qr-frame">
+          <canvas data-qr-canvas width="280" height="280" aria-label="Generated 2FA QR code"></canvas>
+        </div>
+        <div class="qr-meta">
+          <p class="qr-scan-hint">Open your authenticator app → add account → scan this code.</p>
+          <p class="qr-label" data-qr-label-display></p>
+          <label class="uri-field">
+            <span>otpauth URI</span>
+            <textarea data-qr-uri rows="3" readonly spellcheck="false"></textarea>
+          </label>
+          <p class="result-note">
+            Codes are not shown on this page. For live TOTP digits, open the
+            <a href="/">2FA code generator</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import QRCode from 'qrcode';
+  import { TotpInputError, buildOtpauthUri, normalizeSecret, parseLine } from '~/scripts/totp.mjs';
+
+  const tool = document.querySelector('[data-qr-tool]');
+
+  if (tool instanceof HTMLElement && tool.dataset.ready !== 'true') {
+    tool.dataset.ready = 'true';
+
+    const form = tool.querySelector('[data-qr-form]');
+    const accountInput = tool.querySelector('[data-qr-account]');
+    const issuerInput = tool.querySelector('[data-qr-issuer]');
+    const secretInput = tool.querySelector('[data-qr-secret]');
+    const algorithmSelect = tool.querySelector('[data-qr-algorithm]');
+    const digitsSelect = tool.querySelector('[data-qr-digits]');
+    const periodSelect = tool.querySelector('[data-qr-period]');
+    const errors = tool.querySelector('[data-qr-errors]');
+    const results = tool.querySelector('[data-qr-results]');
+    const canvas = tool.querySelector('[data-qr-canvas]');
+    const uriOut = tool.querySelector('[data-qr-uri]');
+    const labelDisplay = tool.querySelector('[data-qr-label-display]');
+    const helpToggle = tool.querySelector('[data-qr-help-toggle]');
+    const helpPanel = tool.querySelector('#qr-help');
+    const demo = tool.querySelector('[data-qr-demo]');
+    const downloadBtn = tool.querySelector('[data-qr-download]');
+    const copyUriBtn = tool.querySelector('[data-qr-copy-uri]');
+    const clearBtn = tool.querySelector('[data-qr-clear]');
+
+    let lastUri = '';
+
+    const setErrors = (message: string) => {
+      if (!(errors instanceof HTMLElement)) return;
+      if (!message) {
+        errors.hidden = true;
+        errors.textContent = '';
+        return;
+      }
+      errors.hidden = false;
+      errors.textContent = message;
+    };
+
+    const showResults = (show: boolean) => {
+      if (results instanceof HTMLElement) results.hidden = !show;
+    };
+
+    const resetWorkspace = () => {
+      lastUri = '';
+      if (accountInput instanceof HTMLInputElement) accountInput.value = '';
+      if (issuerInput instanceof HTMLInputElement) issuerInput.value = '';
+      if (secretInput instanceof HTMLTextAreaElement) secretInput.value = '';
+      if (algorithmSelect instanceof HTMLSelectElement) algorithmSelect.value = 'sha1';
+      if (digitsSelect instanceof HTMLSelectElement) digitsSelect.value = '6';
+      if (periodSelect instanceof HTMLSelectElement) periodSelect.value = '30';
+      if (uriOut instanceof HTMLTextAreaElement) uriOut.value = '';
+      if (labelDisplay instanceof HTMLElement) labelDisplay.textContent = '';
+      if (canvas instanceof HTMLCanvasElement) {
+        const ctx = canvas.getContext('2d');
+        ctx?.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      setErrors('');
+      showResults(false);
+      secretInput instanceof HTMLTextAreaElement && secretInput.focus();
+    };
+
+    const copyText = async (value: string, button: Element | null) => {
+      try {
+        await navigator.clipboard.writeText(value);
+        if (button instanceof HTMLButtonElement) {
+          const original = button.textContent;
+          button.textContent = 'Copied';
+          window.setTimeout(() => {
+            button.textContent = original;
+          }, 1200);
+        }
+      } catch {
+        setErrors('Clipboard access was blocked. Select and copy the URI manually.');
+      }
+    };
+
+    const resolveFields = () => {
+      const rawSecret = secretInput instanceof HTMLTextAreaElement ? secretInput.value.trim() : '';
+      if (!rawSecret) throw new TotpInputError('Paste a Base32 secret or an otpauth://totp URI first.');
+
+      if (rawSecret.toLowerCase().startsWith('otpauth://')) {
+        const entry = parseLine(rawSecret, 1);
+        return {
+          secret: entry.secret,
+          label: entry.label,
+          issuer: '',
+          algorithm: entry.algorithm,
+          digits: entry.digits,
+          period: entry.period,
+          fromUri: true,
+        };
+      }
+
+      return {
+        secret: normalizeSecret(rawSecret),
+        label: accountInput instanceof HTMLInputElement ? accountInput.value.trim() : '',
+        issuer: issuerInput instanceof HTMLInputElement ? issuerInput.value.trim() : '',
+        algorithm: algorithmSelect instanceof HTMLSelectElement ? algorithmSelect.value : 'sha1',
+        digits: digitsSelect instanceof HTMLSelectElement ? Number(digitsSelect.value) : 6,
+        period: periodSelect instanceof HTMLSelectElement ? Number(periodSelect.value) : 30,
+        fromUri: false,
+      };
+    };
+
+    const generate = async () => {
+      setErrors('');
+      try {
+        const fields = resolveFields();
+        const uri = buildOtpauthUri({
+          secret: fields.secret,
+          label: fields.label || fields.issuer || 'Account',
+          issuer: fields.issuer,
+          algorithm: fields.algorithm,
+          digits: fields.digits,
+          period: fields.period,
+        });
+
+        if (!(canvas instanceof HTMLCanvasElement)) throw new Error('QR canvas missing');
+
+        await QRCode.toCanvas(canvas, uri, {
+          errorCorrectionLevel: 'M',
+          margin: 2,
+          width: 280,
+          color: { dark: '#1d1d1f', light: '#ffffff' },
+        });
+
+        lastUri = uri;
+        if (uriOut instanceof HTMLTextAreaElement) uriOut.value = uri;
+        if (labelDisplay instanceof HTMLElement) {
+          const pretty = fields.issuer
+            ? `${fields.issuer} · ${fields.label || 'Account'}`
+            : fields.label || 'Account';
+          labelDisplay.textContent = fields.fromUri
+            ? `From otpauth URI · ${fields.label}`
+            : pretty;
+        }
+
+        // Sync form when user pasted a full URI
+        if (fields.fromUri) {
+          if (accountInput instanceof HTMLInputElement) accountInput.value = fields.label;
+          if (algorithmSelect instanceof HTMLSelectElement) algorithmSelect.value = fields.algorithm;
+          if (digitsSelect instanceof HTMLSelectElement) digitsSelect.value = String(fields.digits);
+          if (periodSelect instanceof HTMLSelectElement) periodSelect.value = String(fields.period);
+        }
+
+        showResults(true);
+        results?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (error) {
+        showResults(false);
+        const message =
+          error instanceof TotpInputError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'The QR code could not be generated.';
+        setErrors(message);
+      }
+    };
+
+    helpToggle?.addEventListener('click', () => {
+      if (!(helpPanel instanceof HTMLElement) || !(helpToggle instanceof HTMLButtonElement)) return;
+      const open = helpPanel.hidden;
+      helpPanel.hidden = !open;
+      helpToggle.setAttribute('aria-expanded', String(open));
+    });
+
+    demo?.addEventListener('click', () => {
+      if (accountInput instanceof HTMLInputElement) accountInput.value = 'demo@example.com';
+      if (issuerInput instanceof HTMLInputElement) issuerInput.value = 'Public demo';
+      if (secretInput instanceof HTMLTextAreaElement) {
+        // RFC test vector Base32 for "12345678901234567890" style demos used elsewhere
+        secretInput.value = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+      }
+      secretInput instanceof HTMLTextAreaElement && secretInput.focus();
+    });
+
+    form?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      void generate();
+    });
+
+    copyUriBtn?.addEventListener('click', () => {
+      if (lastUri) copyText(lastUri, copyUriBtn);
+    });
+
+    downloadBtn?.addEventListener('click', () => {
+      if (!(canvas instanceof HTMLCanvasElement) || !lastUri) return;
+      const link = document.createElement('a');
+      link.download = '2fa-qr-code.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    clearBtn?.addEventListener('click', resetWorkspace);
+  }
+</script>
+
+<style>
+  .tool-wrap {
+    width: min(100% - 2rem, 58rem);
+    margin: 0 auto;
+    scroll-margin-top: 4.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .tool-wrap {
+      width: min(100% - 3rem, 58rem);
+    }
+  }
+
+  .tool-card {
+    overflow: hidden;
+    border: 1px solid var(--hairline);
+    border-radius: 1rem;
+    background: var(--surface-strong);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 8px 24px rgba(0, 0, 0, 0.04);
+  }
+
+  .tool-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.05rem 1.15rem 0;
+  }
+
+  .tool-title {
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+    font-weight: 650;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+  }
+
+  .local-status {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .tool-form {
+    padding: 0.95rem 1.15rem 1.15rem;
+  }
+
+  .field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .field {
+    margin-bottom: 0.85rem;
+  }
+
+  .field-grid .field {
+    margin-bottom: 0;
+  }
+
+  .field-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.45rem;
+  }
+
+  label,
+  .field-heading label {
+    display: block;
+    color: var(--text);
+    font-size: 0.88rem;
+    font-weight: 650;
+    margin-bottom: 0.35rem;
+  }
+
+  .field-heading label {
+    margin-bottom: 0;
+  }
+
+  .optional {
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  input[type='text'],
+  textarea,
+  select {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--hairline-strong);
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    color: var(--text);
+    background: var(--input-bg);
+    font: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition:
+      border-color 140ms ease,
+      box-shadow 140ms ease;
+  }
+
+  textarea {
+    min-height: 5.5rem;
+    resize: vertical;
+    font:
+      500 0.875rem/1.55 ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--placeholder);
+    opacity: 0.75;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--action);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--action) 12%, transparent);
+    background: var(--surface-strong);
+  }
+
+  .help-toggle {
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: var(--surface-soft);
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .help-panel {
+    margin-top: 0.65rem;
+    border: 1px solid var(--hairline);
+    border-radius: 0.75rem;
+    padding: 0.85rem 0.95rem;
+    background: var(--surface-soft);
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .help-panel p,
+  .help-panel ol {
+    margin: 0 0 0.55rem;
+  }
+
+  .help-panel ol {
+    padding-left: 1.15rem;
+  }
+
+  .help-panel a {
+    color: var(--action);
+    font-weight: 600;
+  }
+
+  .advanced {
+    margin: 0.25rem 0 0.85rem;
+    border: 1px solid var(--hairline);
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.85rem;
+    background: var(--surface-soft);
+  }
+
+  .advanced summary {
+    cursor: pointer;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 650;
+    list-style: none;
+  }
+
+  .advanced summary span {
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .advanced summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .advanced-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.65rem;
+    margin-top: 0.75rem;
+  }
+
+  .advanced-grid label {
+    font-size: 0.78rem;
+  }
+
+  .input-errors {
+    margin-bottom: 0.85rem;
+    border: 1px solid color-mix(in srgb, var(--error) 28%, transparent);
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    color: var(--error);
+    background: color-mix(in srgb, var(--error) 7%, transparent);
+    font-size: 0.82rem;
+  }
+
+  .form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .primary-button,
+  .secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    border-radius: 0.65rem;
+    padding: 0.65rem 1.05rem;
+    font-size: 0.875rem;
+    font-weight: 650;
+    cursor: pointer;
+    transition:
+      background 140ms ease,
+      transform 90ms ease-out;
+  }
+
+  .primary-button {
+    border: 0;
+    color: white;
+    background: var(--action);
+  }
+
+  .primary-button:hover {
+    background: color-mix(in srgb, var(--action) 88%, black);
+  }
+
+  .secondary-button {
+    border: 1px solid var(--hairline);
+    color: var(--text);
+    background: var(--surface-strong);
+  }
+
+  .secondary-button:hover {
+    background: var(--surface-hover);
+  }
+
+  .secondary-button.subtle {
+    color: var(--muted);
+  }
+
+  .primary-button:active,
+  .secondary-button:active {
+    transform: scale(0.98);
+  }
+
+  .trust-note {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    text-align: right;
+  }
+
+  .trust-note a {
+    color: var(--action);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.12em;
+  }
+
+  .results {
+    border-top: 1px solid var(--hairline);
+    background: var(--results-bg);
+    padding: 0 0 1.15rem;
+  }
+
+  .results-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1.05rem 1.15rem 0.85rem;
+  }
+
+  .results-heading h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.05rem;
+    font-weight: 650;
+  }
+
+  .result-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .qr-stage {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.25rem;
+    align-items: start;
+    padding: 0 1.15rem;
+  }
+
+  .qr-frame {
+    padding: 0.75rem;
+    border: 1px solid var(--hairline);
+    border-radius: 0.85rem;
+    background: #fff;
+  }
+
+  .qr-frame canvas {
+    display: block;
+    width: 280px;
+    max-width: min(280px, 70vw);
+    height: auto;
+  }
+
+  .qr-scan-hint {
+    margin: 0 0 0.5rem;
+    color: var(--text);
+    font-size: 0.92rem;
+    font-weight: 600;
+  }
+
+  .qr-label {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+
+  .uri-field span {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 650;
+  }
+
+  .uri-field textarea {
+    min-height: 4.5rem;
+    font-size: 0.78rem;
+  }
+
+  .result-note {
+    margin: 0.75rem 0 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+
+  .result-note a {
+    color: var(--action);
+    font-weight: 600;
+  }
+
+  @media (max-width: 720px) {
+    .field-grid,
+    .advanced-grid,
+    .qr-stage {
+      grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .trust-note {
+      text-align: left;
+    }
+
+    .action-row .primary-button {
+      flex: 1;
+    }
+
+    .qr-frame canvas {
+      margin: 0 auto;
+    }
+  }
+</style>

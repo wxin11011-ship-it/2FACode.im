@@ -1,0 +1,787 @@
+---
+import TotpQrTool from '~/components/TotpQrTool.astro';
+import Footer from '~/components/widgets/Footer.astro';
+import Header from '~/components/widgets/Header.astro';
+import Layout from '~/layouts/Layout.astro';
+import { footerData, headerData } from '~/navigation';
+
+const metadata = {
+  title: '2FA QR Code Generator — From Secret, Free Online',
+  description:
+    'Generate a 2FA QR code from a Base32 secret or otpauth URI. Browser-only, free online—scan with authenticator apps.',
+  ignoreTitleTemplate: true,
+  canonical: 'https://2facode.im/2fa-qr-code-generator',
+  openGraph: {
+    title: '2FA QR Code Generator — From Secret, Free Online',
+    description:
+      'Build a scannable 2FA QR code from a secret key in your browser. Download PNG or copy the otpauth URI.',
+    type: 'website',
+    siteName: '2FACode.im',
+    images: [
+      {
+        url: 'https://2facode.im/images/2facode-og.png',
+        width: 1200,
+        height: 630,
+        alt: '2FACode.im 2FA QR code generator',
+      },
+    ],
+  },
+  twitter: {
+    cardType: 'summary_large_image',
+    title: '2FA QR Code Generator — From Secret, Free Online',
+    description:
+      'Build a scannable 2FA QR code from a secret key in your browser. Download PNG or copy the otpauth URI.',
+    image: 'https://2facode.im/images/2facode-og.png',
+  },
+};
+
+const faqs = [
+  {
+    question: 'What is a 2FA QR code generator?',
+    answer:
+      'A 2FA QR code generator turns a TOTP shared secret (and optional account labels) into a scannable QR image. Authenticator apps read the otpauth://totp URI inside the QR so you do not retype the Base32 key by hand.',
+  },
+  {
+    question: 'How do I generate a QR code from a secret key?',
+    answer:
+      'Paste the Base32 secret from the service setup screen, add an account name and optional issuer, then click Generate QR code. The QR is drawn in this browser tab so you can scan it with Google Authenticator, Authy, Microsoft Authenticator, or another TOTP app.',
+  },
+  {
+    question: 'Is this the same as a 2FA code generator that shows 6-digit codes?',
+    answer:
+      'No. This page builds a scannable QR (and otpauth URI) from a secret. The homepage 2FA code generator calculates live six-digit TOTP codes and countdowns. Use this page to enroll a phone app; use the code generator when you need the current login code.',
+  },
+  {
+    question: 'Does the QR encode my secret so any authenticator can scan it?',
+    answer:
+      'Yes for apps that support standard otpauth TOTP URIs. The QR carries the shared secret and common settings (algorithm, digits, period). Some apps ignore non-default advanced options—when unsure, keep SHA-1, six digits, and 30 seconds.',
+  },
+  {
+    question: 'Is it safe to generate a 2FA QR code online?',
+    answer:
+      'This tool encodes the QR locally in your browser and does not upload the secret to a generation server. Any web page can still be risky on a compromised device or look-alike domain. Prefer a trusted device, confirm 2facode.im, and clear the page when finished.',
+  },
+  {
+    question: 'Does my secret leave the browser?',
+    answer:
+      'QR encoding and preview run in page memory. The secret is not written to LocalStorage as part of generation, and there is no generation API. Optional site analytics measure visits and are not a TOTP backend. Clearing the workspace or closing the tab removes the in-page fields.',
+  },
+  {
+    question: 'Can I use this for Google Authenticator, Authy, or Microsoft Authenticator?',
+    answer:
+      'Yes when those apps accept standard TOTP setup via QR. This site is independent and is not affiliated with Google, Microsoft, Authy, or other authenticator brands. After scanning, confirm the account label and a test code on the service that issued the secret.',
+  },
+  {
+    question: 'What is an otpauth://totp URI?',
+    answer:
+      'It is the standard text form of a TOTP setup string, for example otpauth://totp/Issuer:account?secret=BASE32&issuer=Issuer. The QR image is a visual encoding of that URI. You can paste a full URI into the secret field and this tool will reuse its parameters.',
+  },
+  {
+    question: 'Why would I regenerate a QR code if I already have the secret?',
+    answer:
+      'Common reasons: moving to a new phone, enrolling a second authenticator, restoring from a written Base32 backup, or giving a teammate a scannable form of a shared lab secret. If you only need the current six-digit login code, open the 2FA code generator instead.',
+  },
+  {
+    question: 'Can I download the QR as PNG?',
+    answer:
+      'Yes. After generation, use Download PNG to save the canvas image, or Copy otpauth URI to paste the text into another trusted tool. Treat the PNG like the secret itself—anyone who can scan it can generate codes.',
+  },
+  {
+    question: 'How is this different from a 2FA QR code scanner?',
+    answer:
+      'A scanner reads a QR image to extract a secret or produce codes. This generator does the reverse: it starts from a secret or URI and draws a QR for apps to scan. If you need live codes from a pasted secret, use the homepage generator.',
+  },
+  {
+    question: 'Can I get a secret key from a QR code image here?',
+    answer:
+      'Not on this page. This URL only builds QR codes from secrets you already have. Decoding a QR image is a separate job; keep screenshots offline or use a trusted local decoder, then paste the secret into the homepage if you need live TOTP digits.',
+  },
+];
+
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: '2FA QR Code Generator',
+    url: 'https://2facode.im/2fa-qr-code-generator',
+    isPartOf: { '@type': 'WebSite', name: '2FACode.im', url: 'https://2facode.im/' },
+    description: 'Browser-only tool to generate a scannable 2FA QR code from a Base32 secret or otpauth URI.',
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: '2FACode.im 2FA QR Code Generator',
+    applicationCategory: 'SecurityApplication',
+    operatingSystem: 'Any modern web browser',
+    url: 'https://2facode.im/2fa-qr-code-generator',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    featureList: [
+      'Generate 2FA QR codes from Base32 secrets',
+      'otpauth://totp URI support',
+      'Download PNG',
+      'Browser-only encoding',
+      'Optional algorithm, digits, and period',
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+    })),
+  },
+];
+---
+
+<Layout metadata={metadata}>
+  <a class="skip-link" href="#qr-generator">Skip to the QR generator</a>
+  <Header {...headerData} isSticky showToggleTheme={true} />
+
+  <main id="main-content" class="tool-page">
+    <section class="hero-section">
+      <div class="hero-copy">
+        <h1>2FA QR Code Generator</h1>
+        <p class="hero-intro">
+          Turn a Base32 secret or otpauth URI into a scannable 2FA QR code in this browser. Nothing is uploaded—scan with
+          your authenticator app, download a PNG, or copy the URI.
+        </p>
+      </div>
+
+      <TotpQrTool />
+
+      <p class="hero-footnote">
+        Need live six-digit codes instead?
+        <a href="/">Open the 2FA code generator</a>
+        · Source-available on
+        <a href="https://github.com/wxin11011-ship-it/2FACode.im" target="_blank" rel="noopener noreferrer">GitHub</a>.
+      </p>
+    </section>
+
+    <section class="content-section" aria-labelledby="how-qr-title">
+      <div class="section-heading">
+        <p class="section-kicker">How it works</p>
+        <h2 id="how-qr-title">How this TOTP QR code generator works</h2>
+        <p>
+          A 2FA QR code is not a random picture. It encodes a standard <code>otpauth://totp/…</code> string that carries
+          the shared secret and the settings your authenticator needs. This online 2FA QR code generator builds that
+          string locally, draws the 2FA QR code on a canvas, and keeps the secret in the tab until you clear it. If you
+          searched for a free 2FA QR code generator online, this page is the dedicated tool for secret-to-QR—not the live
+          six-digit TOTP calculator on the homepage.
+        </p>
+      </div>
+      <div class="step-grid">
+        <article>
+          <span>01</span>
+          <h3>Paste the secret</h3>
+          <p>Use the Base32 setup key from the service, or paste a full otpauth TOTP URI if you already have one.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>Label the account</h3>
+          <p>Add an account name and optional issuer so Google Authenticator, Authy, or similar apps show a clear title.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>Generate and scan</h3>
+          <p>Create the QR, scan it with your phone app, then download the PNG or copy the URI if you need a backup image.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="content-section" aria-labelledby="from-secret-title">
+      <div class="section-heading">
+        <p class="section-kicker">From secret key</p>
+        <h2 id="from-secret-title">Generate a QR code from a secret key</h2>
+        <p>
+          When a provider shows “enter this key manually,” that Base32 string is enough to rebuild a scannable 2FA QR
+          code. Enter the key, set the label you want on the phone, and generate. Advanced options stay collapsed: most
+          services use SHA-1, six digits, and a 30-second period. Change them only when the service documents non-default
+          values. Generating a QR code from a secret key is the main job of this 2FA QR code generator.
+        </p>
+        <p>
+          If you already store an <code>otpauth://totp/</code> URI in a password manager, paste the whole URI into the
+          secret field. The 2FA QR code tool reads algorithm, digits, and period from the URI so the QR matches the
+          original setup. That is often faster than retyping a long Base32 string by hand.
+        </p>
+      </div>
+    </section>
+
+    <section class="content-section split-section" aria-labelledby="scan-title">
+      <div>
+        <p class="section-kicker">Phone apps</p>
+        <h2 id="scan-title">Scan with authenticator apps</h2>
+      </div>
+      <div class="split-copy">
+        <p>
+          After the QR appears, open your authenticator app and choose add account / scan QR. Compatible apps include
+          common TOTP clients such as Google Authenticator, Microsoft Authenticator, Authy, and other apps that accept
+          standard otpauth TOTP URIs. 2FACode.im is independent and is not endorsed by those brands.
+        </p>
+        <p>
+          When enrollment finishes, confirm a test login on the original service. If the code is rejected, check clock
+          sync, confirm you scanned the latest QR, and verify advanced settings if the provider uses non-default digits
+          or algorithms.
+        </p>
+      </div>
+    </section>
+
+    <section class="content-section" aria-labelledby="vs-code-title">
+      <div class="section-heading">
+        <p class="section-kicker">Two tools, two jobs</p>
+        <h2 id="vs-code-title">2FA QR code generator vs 2FA code generator</h2>
+        <p>
+          Search results mix “QR generator” with “online authenticator.” On 2FACode.im the split is deliberate so each
+          page matches one primary job.
+        </p>
+      </div>
+      <div class="compare-grid">
+        <article>
+          <h3>This page — 2FA QR code generator</h3>
+          <ul>
+            <li>Input: secret or otpauth URI</li>
+            <li>Output: scannable QR + URI text + PNG download</li>
+            <li>Goal: enroll or re-enroll an authenticator app</li>
+          </ul>
+        </article>
+        <article>
+          <h3>
+            <a href="/">Homepage — 2FA code generator</a>
+          </h3>
+          <ul>
+            <li>Input: one secret or up to 50 lines</li>
+            <li>Output: live TOTP digits and countdowns</li>
+            <li>Goal: copy a code for a login right now</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="content-section proof-section" aria-labelledby="safe-title">
+      <div class="proof-copy">
+        <p class="section-kicker">Browser-only encoding</p>
+        <h2 id="safe-title">Is an online 2FA QR code generator safe?</h2>
+        <p>
+          Anyone who can read the 2FA QR code (or the secret inside it) can generate the same codes. Treat the image like
+          the secret. This 2FA QR code generator draws the QR in the page and does not call a generation API. Optional
+          analytics may measure traffic; they are not used as a secret database. “Is a QR code generator safe?” depends
+          on the device and the domain—always confirm you are on 2facode.im.
+        </p>
+        <p>
+          Prefer a trusted device, verify the domain, avoid public screens when scanning, and clear the form when you
+          finish. For long-term storage, keep secrets in a dedicated authenticator or encrypted vault—not in random
+          screenshots forever. A legitimate 2FA QR code generator should never require an account to encode a secret you
+          already hold.
+        </p>
+      </div>
+      <dl class="proof-list">
+        <div><dt>Secret upload</dt><dd>None for generation</dd></div>
+        <div><dt>QR encoding</dt><dd>In-browser</dd></div>
+        <div><dt>PNG export</dt><dd>Local download</dd></div>
+        <div><dt>Live codes</dt><dd>Use homepage tool</dd></div>
+      </dl>
+    </section>
+
+    <section class="content-section showcase-section" aria-labelledby="use-title">
+      <div class="section-heading">
+        <p class="section-kicker">When it helps</p>
+        <h2 id="use-title">When to use a 2FA QR code generator online</h2>
+      </div>
+      <div class="use-grid">
+        <article>
+          <h3>New phone migration</h3>
+          <p>You saved Base32 keys and need a QR again for Google Authenticator or a similar app on a new device.</p>
+        </article>
+        <article>
+          <h3>Second authenticator</h3>
+          <p>Enroll a hardware-backed app or a backup phone without disabling 2FA on the service when you still have the secret.</p>
+        </article>
+        <article>
+          <h3>Lab and staging accounts</h3>
+          <p>Developers rebuild otpauth QR codes from known test secrets while keeping generation local to the browser.</p>
+        </article>
+      </div>
+      <div class="inline-gallery" aria-hidden="true">
+        <img
+          src="/images/browser-only-2fa.webp"
+          width="480"
+          height="320"
+          loading="lazy"
+          decoding="async"
+          alt="Browser-only 2FA workflow with no server transfer"
+        />
+        <img
+          src="/images/totp-30-second-cycle.webp"
+          width="480"
+          height="320"
+          loading="lazy"
+          decoding="async"
+          alt="TOTP cycle illustration related to authenticator setup"
+        />
+        <img
+          src="/images/bulk-2fa-codes.webp"
+          width="480"
+          height="320"
+          loading="lazy"
+          decoding="async"
+          alt="Multiple labeled authenticator accounts illustration"
+        />
+      </div>
+    </section>
+
+    <section id="faq" class="content-section faq-section" aria-labelledby="faq-title">
+      <div class="section-heading">
+        <p class="section-kicker">FAQ</p>
+        <h2 id="faq-title">2FA QR code generator FAQ</h2>
+        <p>
+          Practical answers about generating a 2FA QR code online, otpauth URIs, authenticator apps, and how this tool
+          differs from a live TOTP code generator.
+        </p>
+      </div>
+      <div class="faq-list">
+        {
+          faqs.map((faq, index) => (
+            <details open={index === 0}>
+              <summary>
+                <span>{faq.question}</span>
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path
+                    d="M5 7.5 10 12.5 15 7.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.6"
+                  />
+                </svg>
+              </summary>
+              <p>{faq.answer}</p>
+            </details>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="final-section" aria-labelledby="final-title">
+      <p class="section-kicker">Ready when you are</p>
+      <h2 id="final-title">Generate your 2FA QR code, then leave no secret on the screen</h2>
+      <p>Build the QR locally, scan it into your authenticator, and clear the tab when you are done.</p>
+      <div class="final-actions">
+        <a href="#qr-generator">Back to the QR generator</a>
+        <a class="ghost" href="/">Open the 2FA code generator</a>
+      </div>
+    </section>
+  </main>
+
+  <Footer {...footerData} />
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
+</Layout>
+
+<style is:global>
+  :root {
+    color-scheme: light;
+    --canvas: #f5f5f7;
+    --surface-strong: rgba(255, 255, 255, 0.94);
+    --surface-soft: rgba(255, 255, 255, 0.6);
+    --surface-hover: #f0f0f2;
+    --input-bg: #f7f7f8;
+    --results-bg: #f7f7f8;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --placeholder: #aeaeb2;
+    --hairline: rgba(0, 0, 0, 0.08);
+    --hairline-strong: rgba(0, 0, 0, 0.14);
+    --action: #0071e3;
+    --success: #248a3d;
+    --error: #c9342b;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --canvas: #050505;
+    --surface-strong: rgba(24, 24, 25, 0.96);
+    --surface-soft: rgba(31, 31, 33, 0.66);
+    --surface-hover: #29292b;
+    --input-bg: #101011;
+    --results-bg: #0e0e0f;
+    --text: #f5f5f7;
+    --muted: #a1a1a6;
+    --placeholder: #6e6e73;
+    --hairline: rgba(255, 255, 255, 0.11);
+    --hairline-strong: rgba(255, 255, 255, 0.18);
+    --action: #2997ff;
+    --success: #30d158;
+    --error: #ff6961;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 4.5rem;
+  }
+
+  body {
+    margin: 0;
+    color: var(--text);
+    background: var(--canvas);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  }
+
+  .skip-link {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 100;
+    transform: translateY(-150%);
+    border-radius: 999px;
+    padding: 0.65rem 0.9rem;
+    color: white;
+    background: var(--action);
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
+  #header {
+    border-bottom: 1px solid transparent;
+    background: color-mix(in srgb, var(--canvas) 78%, transparent);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  #header.scroll {
+    border-bottom-color: var(--hairline);
+  }
+
+  #header a,
+  #header button {
+    color: var(--text);
+  }
+
+  #header [data-header-actions] a,
+  #header [data-header-actions] button {
+    color: var(--muted);
+  }
+
+  .tool-page {
+    --page-max: 64rem;
+    --page-gutter: 1rem;
+    overflow: hidden;
+    background: var(--canvas);
+  }
+
+  @media (min-width: 640px) {
+    .tool-page {
+      --page-gutter: 1.5rem;
+    }
+  }
+
+  .hero-section {
+    padding: clamp(0.85rem, 1.6vw, 1.25rem) 0 clamp(1.5rem, 2.5vw, 2.25rem);
+  }
+
+  .hero-copy {
+    width: min(100% - (var(--page-gutter) * 2), 42rem);
+    margin: 0 auto 0.95rem;
+    text-align: center;
+  }
+
+  .hero-copy h1 {
+    margin: 0;
+    font-size: clamp(1.85rem, 3.8vw, 2.65rem);
+    font-weight: 700;
+    line-height: 1.12;
+    letter-spacing: -0.028em;
+  }
+
+  .hero-intro {
+    max-width: 36rem;
+    margin: 0.55rem auto 0;
+    color: var(--muted);
+    font-size: clamp(0.92rem, 1.35vw, 1.02rem);
+    line-height: 1.5;
+  }
+
+  .hero-footnote {
+    width: min(100% - (var(--page-gutter) * 2), 40rem);
+    margin: 0.85rem auto 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-align: center;
+    line-height: 1.5;
+  }
+
+  .hero-footnote a {
+    color: var(--action);
+    font-weight: 600;
+  }
+
+  .section-kicker {
+    margin: 0 0 0.8rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .content-section {
+    width: min(100% - (var(--page-gutter) * 2), var(--page-max));
+    margin: 0 auto;
+    padding: clamp(3rem, 6vw, 5rem) 0;
+  }
+
+  .content-section + .content-section {
+    border-top: 1px solid var(--hairline);
+  }
+
+  .section-heading {
+    max-width: 46rem;
+    margin-bottom: 2rem;
+  }
+
+  .section-heading h2,
+  .proof-copy h2,
+  .split-section h2,
+  .final-section h2 {
+    margin: 0;
+    font-size: clamp(1.85rem, 4vw, 3.2rem);
+    font-weight: 740;
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+  }
+
+  .section-heading > p,
+  .proof-copy > p,
+  .split-copy p {
+    color: var(--muted);
+    font-size: clamp(1rem, 1.6vw, 1.08rem);
+    line-height: 1.7;
+  }
+
+  .section-heading code,
+  .help-panel code {
+    font-size: 0.92em;
+  }
+
+  .step-grid,
+  .use-grid,
+  .compare-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .compare-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .step-grid article,
+  .use-grid article,
+  .compare-grid article {
+    border: 1px solid var(--hairline);
+    border-radius: 1.15rem;
+    padding: 1.25rem;
+    background: var(--surface-soft);
+  }
+
+  .step-grid article > span {
+    color: var(--action);
+    font:
+      720 0.74rem/1 ui-monospace,
+      monospace;
+  }
+
+  .step-grid h3,
+  .use-grid h3,
+  .compare-grid h3 {
+    margin: 1rem 0 0.45rem;
+    font-size: 1rem;
+  }
+
+  .compare-grid h3 {
+    margin-top: 0;
+  }
+
+  .compare-grid a {
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .compare-grid a:hover {
+    color: var(--action);
+  }
+
+  .step-grid p,
+  .use-grid p,
+  .compare-grid li {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .compare-grid ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: var(--muted);
+  }
+
+  .proof-section,
+  .split-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(16rem, 0.85fr);
+    gap: clamp(2rem, 6vw, 5rem);
+    align-items: start;
+  }
+
+  .proof-list {
+    margin: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 1.15rem;
+    background: var(--surface-strong);
+    overflow: hidden;
+  }
+
+  .proof-list div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.95rem 1.05rem;
+  }
+
+  .proof-list div + div {
+    border-top: 1px solid var(--hairline);
+  }
+
+  .proof-list dt {
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
+  .proof-list dd {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .inline-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 1.75rem;
+  }
+
+  .inline-gallery img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    border: 1px solid var(--hairline);
+    border-radius: 1rem;
+    background: var(--surface-soft);
+  }
+
+  .faq-section {
+    width: min(100% - (var(--page-gutter) * 2), 56rem);
+  }
+
+  .faq-list {
+    border-top: 1px solid var(--hairline);
+  }
+
+  .faq-list details {
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .faq-list summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.15rem 0;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .faq-list summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-list summary svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex: 0 0 auto;
+    color: var(--muted);
+  }
+
+  .faq-list details p {
+    margin: -0.2rem 0 1.25rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+
+  .final-section {
+    width: min(100% - (var(--page-gutter) * 2), var(--page-max));
+    margin: 1.5rem auto 4rem;
+    border: 1px solid var(--hairline);
+    border-radius: 1.5rem;
+    padding: clamp(2.5rem, 5vw, 4rem) 1.5rem;
+    background: var(--surface-strong);
+    text-align: center;
+  }
+
+  .final-section h2 {
+    max-width: 40rem;
+    margin: 0 auto;
+  }
+
+  .final-section > p {
+    margin: 1rem auto 1.5rem;
+    color: var(--muted);
+  }
+
+  .final-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.65rem;
+  }
+
+  .final-section a {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 0.85rem 1.15rem;
+    color: white;
+    background: var(--action);
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .final-section a.ghost {
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--hairline);
+  }
+
+  footer {
+    color: var(--muted);
+    border-color: var(--hairline) !important;
+    background: var(--canvas) !important;
+  }
+
+  @media (max-width: 800px) {
+    .step-grid,
+    .use-grid,
+    .compare-grid,
+    .inline-gallery,
+    .proof-section,
+    .split-section {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

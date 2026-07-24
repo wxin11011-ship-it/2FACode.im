@@ -7,11 +7,12 @@
 
 ## Features
 
-- Process 1–50 TOTP entries at once
+- Process 1–50 TOTP entries at once on the homepage generator
 - Accepts `BASE32SECRET`, `Label | BASE32SECRET`, and `otpauth://totp/...`
 - Supports SHA-1 / SHA-256 / SHA-512, 6–8 digits, and 15–120 second periods
 - Auto-refreshes codes and countdowns
 - Copy one code, copy all, or clear the workspace
+- Dedicated [2FA QR code generator](https://2facode.im/2fa-qr-code-generator): secret → scannable QR (PNG + otpauth URI), browser-only
 - No generation API, ad scripts, or secret storage (optional page analytics for traffic only)
 - Web Crypto first, with a Noble pure-JS crypto fallback
 - RFC 6238 test vectors and input-boundary tests

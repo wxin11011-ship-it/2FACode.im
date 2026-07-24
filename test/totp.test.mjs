@@ -9,6 +9,7 @@ import {
   MAX_LABEL_LENGTH,
   MAX_LINE_LENGTH,
   TotpInputError,
+  buildOtpauthUri,
   generateTotp,
   getCryptoPlugin,
   getSecondsRemaining,
@@ -146,4 +147,18 @@ test('rejects HOTP and malformed encoded labels', () => {
 test('calculates the current period countdown', () => {
   assert.equal(getSecondsRemaining(30, 59), 1);
   assert.equal(getSecondsRemaining(30, 60), 30);
+});
+
+test('builds a scannable otpauth URI for QR encoding', () => {
+  const uri = buildOtpauthUri({
+    secret: RFC_SHA1_SECRET,
+    label: 'alice@example.com',
+    issuer: 'GitHub',
+  });
+
+  assert.match(uri, /^otpauth:\/\/totp\//);
+  assert.match(uri, /secret=/);
+  assert.match(uri, /issuer=GitHub/);
+  assert.equal(parseLine(uri, 1).secret, RFC_SHA1_SECRET);
+  assert.equal(parseLine(uri, 1).algorithm, 'sha1');
 });

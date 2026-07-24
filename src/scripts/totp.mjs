@@ -174,6 +174,32 @@ export function maskSecret(secret) {
   return `•••• ${String(secret).slice(-4)}`;
 }
 
+/**
+ * Build a standard otpauth://totp URI for QR encoding (local only).
+ * @param {{ secret: string, label?: string, issuer?: string, algorithm?: string, digits?: number, period?: number }} options
+ */
+export function buildOtpauthUri(options = {}) {
+  const secret = normalizeSecret(options.secret);
+  const algorithm = parseAlgorithm(options.algorithm);
+  const digits = parseDigits(options.digits);
+  const period = parsePeriod(options.period);
+  const issuer = String(options.issuer || '')
+    .trim()
+    .slice(0, MAX_LABEL_LENGTH);
+  const label = normalizeLabel(options.label || issuer || 'Account', 'Account');
+
+  const pathLabel = issuer ? `${issuer}:${label}` : label;
+  const params = new URLSearchParams();
+  params.set('secret', secret);
+  if (issuer) params.set('issuer', issuer);
+  if (algorithm !== 'sha1') params.set('algorithm', algorithm.toUpperCase());
+  if (digits !== 6) params.set('digits', String(digits));
+  if (period !== 30) params.set('period', String(period));
+
+  // Path segment: encodeURIComponent keeps ":" between issuer and account usable by apps
+  return `otpauth://totp/${encodeURIComponent(pathLabel).replace(/%3A/gi, ':')}?${params.toString()}`;
+}
+
 export function getSecondsRemaining(period = 30, epoch = Date.now() / 1000) {
   const elapsed = Math.floor(epoch) % period;
   return elapsed === 0 ? period : period - elapsed;

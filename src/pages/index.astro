@@ -159,6 +159,8 @@ const schema = [
 
       <p class="hero-footnote">
         For standard TOTP only—not SMS codes, account recovery, or bypassing two-factor authentication.
+        Need a scannable setup image?
+        <a href="/2fa-qr-code-generator">2FA QR code generator</a>.
       </p>
     </section>
 
@@ -527,6 +529,11 @@ const schema = [
     font-size: 0.72rem;
     line-height: 1.45;
     text-align: center;
+  }
+
+  .hero-footnote a {
+    color: var(--action);
+    font-weight: 600;
   }
 
   .content-section {

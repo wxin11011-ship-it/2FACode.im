@@ -18,6 +18,8 @@ export const headerData = {
 export const footerData = {
   links: [],
   secondaryLinks: [
+    { text: '2FA codes', href: getPermalink('/') },
+    { text: '2FA QR', href: getPermalink('/2fa-qr-code-generator') },
     { text: 'About', href: getPermalink('/about') },
     { text: 'Security', href: getPermalink('/security') },
     { text: 'Terms', href: getPermalink('/terms') },
