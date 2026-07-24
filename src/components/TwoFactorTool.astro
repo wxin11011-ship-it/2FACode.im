@@ -1,0 +1,780 @@
+<section id="generator" class="tool-wrap" aria-labelledby="generator-title">
+  <div class="tool-card" data-totp-tool>
+    <div class="tool-topline">
+      <div>
+        <p class="eyebrow">Private workspace</p>
+        <h2 id="generator-title">Generate one code or a full batch</h2>
+      </div>
+      <div class="local-status" title="Code generation runs in this browser">
+        <span aria-hidden="true"></span>
+        Browser only
+      </div>
+    </div>
+
+    <form class="tool-form" data-totp-form novalidate>
+      <div class="field-heading">
+        <label for="totp-input">2FA secret keys</label>
+        <span data-line-count>0 / 50 lines</span>
+      </div>
+      <textarea
+        id="totp-input"
+        data-totp-input
+        name="secrets"
+        rows="7"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        placeholder={'Personal | GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ\nWork | BASE32SECRET\notpauth://totp/...'}
+        aria-describedby="input-help input-errors"></textarea>
+      <div id="input-help" class="input-help">
+        <p>One entry per line. Use a Base32 secret, <code>Label | SECRET</code>, or an <code>otpauth://</code> URI.</p>
+        <button type="button" class="text-button" data-demo>Use a public demo key</button>
+      </div>
+
+      <div id="input-errors" class="input-errors" data-errors role="alert" aria-live="polite" hidden></div>
+
+      <div class="form-actions">
+        <button type="submit" class="primary-button">
+          <span>Generate codes</span>
+          <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path
+              d="M4 10h12m-5-5 5 5-5 5"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.7"></path>
+          </svg>
+        </button>
+        <p><strong>Nothing is uploaded.</strong> Your input stays in this tab's memory.</p>
+      </div>
+    </form>
+
+    <div class="results" data-results hidden aria-live="polite">
+      <div class="results-heading">
+        <div>
+          <p class="eyebrow">Live codes</p>
+          <h3 data-results-title>Generated codes</h3>
+        </div>
+        <div class="result-actions">
+          <button type="button" class="secondary-button" data-copy-all>Copy all</button>
+          <button type="button" class="secondary-button subtle" data-clear>Clear</button>
+        </div>
+      </div>
+      <div class="code-list" data-code-list></div>
+      <p class="result-note">Codes refresh automatically. Clear the workspace when you are finished.</p>
+    </div>
+
+    <div class="tool-proof" aria-label="Privacy properties">
+      <span>No account</span>
+      <span>No secret storage</span>
+      <span>No analytics</span>
+      <span>RFC 6238</span>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { TotpInputError, generateTotp, getSecondsRemaining, maskSecret, parseInput } from '~/scripts/totp.mjs';
+
+  type TotpEntry = {
+    id: string;
+    lineNumber: number;
+    label: string;
+    secret: string;
+    algorithm: string;
+    digits: number;
+    period: number;
+  };
+
+  const tool = document.querySelector('[data-totp-tool]');
+
+  if (tool instanceof HTMLElement && tool.dataset.ready !== 'true') {
+    tool.dataset.ready = 'true';
+
+    const form = tool.querySelector('[data-totp-form]');
+    const input = tool.querySelector('[data-totp-input]');
+    const lineCount = tool.querySelector('[data-line-count]');
+    const errors = tool.querySelector('[data-errors]');
+    const results = tool.querySelector('[data-results]');
+    const resultsTitle = tool.querySelector('[data-results-title]');
+    const codeList = tool.querySelector('[data-code-list]');
+    const copyAll = tool.querySelector('[data-copy-all]');
+    const clear = tool.querySelector('[data-clear]');
+    const demo = tool.querySelector('[data-demo]');
+
+    let activeEntries: TotpEntry[] = [];
+    let activeTokens = new Map<string, string>();
+    let timeSteps = new Map<string, number>();
+    let generationId = 0;
+
+    const setErrors = (items: string[]) => {
+      if (!(errors instanceof HTMLElement)) return;
+      errors.replaceChildren();
+
+      if (!items.length) {
+        errors.hidden = true;
+        return;
+      }
+
+      const list = document.createElement('ul');
+      for (const item of items) {
+        const element = document.createElement('li');
+        element.textContent = item;
+        list.append(element);
+      }
+      errors.append(list);
+      errors.hidden = false;
+    };
+
+    const formatToken = (token: string) => {
+      const splitAt = Math.ceil(token.length / 2);
+      return `${token.slice(0, splitAt)} ${token.slice(splitAt)}`;
+    };
+
+    const copyText = async (value: string, button: Element | null) => {
+      try {
+        await navigator.clipboard.writeText(value);
+        if (button instanceof HTMLButtonElement) {
+          const original = button.textContent;
+          button.textContent = 'Copied';
+          window.setTimeout(() => {
+            button.textContent = original;
+          }, 1200);
+        }
+      } catch {
+        setErrors(['Clipboard access was blocked. Select and copy the code manually.']);
+      }
+    };
+
+    const createCodeRow = (entry: TotpEntry, token: string) => {
+      const row = document.createElement('article');
+      row.className = 'code-row';
+      row.dataset.entryId = entry.id;
+
+      const identity = document.createElement('div');
+      identity.className = 'code-identity';
+      const label = document.createElement('h4');
+      label.textContent = entry.label;
+      const meta = document.createElement('p');
+      meta.textContent = `${maskSecret(entry.secret)} · ${entry.algorithm.toUpperCase()} · ${entry.period}s`;
+      identity.append(label, meta);
+
+      const value = document.createElement('div');
+      value.className = 'code-value';
+      const digits = document.createElement('output');
+      digits.dataset.token = '';
+      digits.textContent = formatToken(token);
+      digits.setAttribute('aria-label', `Current code for ${entry.label}`);
+
+      const timer = document.createElement('span');
+      timer.className = 'timer-ring';
+      timer.dataset.timer = '';
+      timer.setAttribute('aria-label', 'Seconds remaining');
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'copy-button';
+      button.textContent = 'Copy';
+      button.addEventListener('click', () => copyText(activeTokens.get(entry.id) || '', button));
+
+      value.append(digits, timer, button);
+      row.append(identity, value);
+      return row;
+    };
+
+    const renderRows = () => {
+      if (!(codeList instanceof HTMLElement)) return;
+      codeList.replaceChildren();
+      for (const entry of activeEntries) {
+        const token = activeTokens.get(entry.id);
+        if (token) codeList.append(createCodeRow(entry, token));
+      }
+    };
+
+    const updateRow = (entry: TotpEntry, token: string) => {
+      if (!(codeList instanceof HTMLElement)) return;
+      const row = codeList.querySelector(`[data-entry-id="${entry.id}"]`);
+      const output = row?.querySelector('[data-token]');
+      if (output instanceof HTMLOutputElement) output.textContent = formatToken(token);
+    };
+
+    const generateEntries = async (entries: TotpEntry[], epoch: number, requestId: number) => {
+      const generated = await Promise.allSettled(entries.map((entry) => generateTotp(entry, epoch)));
+      if (requestId !== generationId) return [];
+
+      const generationErrors: string[] = [];
+      generated.forEach((result, index) => {
+        const entry = entries[index];
+        if (result.status === 'fulfilled') {
+          activeTokens.set(entry.id, result.value);
+        } else {
+          generationErrors.push(`Line ${entry.lineNumber}: a code could not be generated.`);
+        }
+      });
+      return generationErrors;
+    };
+
+    const updateTimers = async () => {
+      if (!activeEntries.length || !(codeList instanceof HTMLElement)) return;
+      const epoch = Date.now() / 1000;
+
+      for (const entry of activeEntries) {
+        const row = codeList.querySelector(`[data-entry-id="${entry.id}"]`);
+        const timer = row?.querySelector('[data-timer]');
+        const remaining = getSecondsRemaining(entry.period, epoch);
+        const progress = remaining / entry.period;
+
+        if (timer instanceof HTMLElement) {
+          timer.textContent = String(remaining);
+          timer.style.setProperty('--timer-progress', String(progress));
+        }
+
+        const timeStep = Math.floor(epoch / entry.period);
+        if (timeSteps.get(entry.id) !== timeStep) {
+          timeSteps.set(entry.id, timeStep);
+          try {
+            const token = await generateTotp(entry, epoch);
+            activeTokens.set(entry.id, token);
+            updateRow(entry, token);
+          } catch {
+            setErrors([`Line ${entry.lineNumber}: a code could not be refreshed.`]);
+          }
+        }
+      }
+    };
+
+    const resetWorkspace = () => {
+      generationId += 1;
+      activeEntries = [];
+      activeTokens = new Map();
+      timeSteps = new Map();
+      if (input instanceof HTMLTextAreaElement) {
+        input.value = '';
+        input.focus();
+      }
+      if (codeList instanceof HTMLElement) codeList.replaceChildren();
+      if (results instanceof HTMLElement) results.hidden = true;
+      if (lineCount instanceof HTMLElement) lineCount.textContent = '0 / 50 lines';
+      setErrors([]);
+    };
+
+    input?.addEventListener('input', () => {
+      if (!(input instanceof HTMLTextAreaElement) || !(lineCount instanceof HTMLElement)) return;
+      const count = input.value.split(/\r?\n/).filter((line) => line.trim()).length;
+      lineCount.textContent = `${count} / 50 lines`;
+      lineCount.classList.toggle('over-limit', count > 50);
+    });
+
+    demo?.addEventListener('click', () => {
+      if (!(input instanceof HTMLTextAreaElement)) return;
+      input.value = 'Public RFC demo | GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ';
+      input.dispatchEvent(new Event('input'));
+      input.focus();
+    });
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!(input instanceof HTMLTextAreaElement)) return;
+
+      const requestId = ++generationId;
+      setErrors([]);
+
+      try {
+        const parsed = parseInput(input.value);
+        activeEntries = parsed.entries;
+        activeTokens = new Map<string, string>();
+        timeSteps = new Map<string, number>();
+
+        const generationErrors = await generateEntries(activeEntries, Date.now() / 1000, requestId);
+        const allErrors = [
+          ...parsed.errors.map(
+            (error: { lineNumber: number; message: string }) => `Line ${error.lineNumber}: ${error.message}`
+          ),
+          ...generationErrors,
+        ];
+        setErrors(allErrors);
+
+        if (!activeTokens.size) {
+          if (results instanceof HTMLElement) results.hidden = true;
+          return;
+        }
+
+        renderRows();
+        await updateTimers();
+        if (resultsTitle instanceof HTMLElement) {
+          resultsTitle.textContent = `${activeTokens.size} live code${activeTokens.size === 1 ? '' : 's'}`;
+        }
+        if (results instanceof HTMLElement) {
+          results.hidden = false;
+          results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      } catch (error) {
+        const message = error instanceof TotpInputError ? error.message : 'The codes could not be generated.';
+        setErrors([message]);
+        if (results instanceof HTMLElement) results.hidden = true;
+      }
+    });
+
+    copyAll?.addEventListener('click', () => {
+      const value = activeEntries
+        .map((entry) => {
+          const token = activeTokens.get(entry.id);
+          return token ? `${entry.label}\t${token}` : '';
+        })
+        .filter(Boolean)
+        .join('\n');
+      if (value) copyText(value, copyAll);
+    });
+
+    clear?.addEventListener('click', resetWorkspace);
+    window.setInterval(updateTimers, 500);
+  }
+</script>
+
+<style>
+  .tool-wrap {
+    width: min(100% - 1.5rem, 58rem);
+    margin: 0 auto;
+    scroll-margin-top: 6rem;
+  }
+
+  .tool-card {
+    overflow: hidden;
+    border: 1px solid var(--hairline);
+    border-radius: 1.75rem;
+    background: var(--surface-strong);
+    box-shadow:
+      0 2rem 5rem rgba(0, 0, 0, 0.09),
+      inset 0 1px rgba(255, 255, 255, 0.5);
+  }
+
+  .tool-topline,
+  .results-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.5rem 1.5rem 0;
+  }
+
+  .eyebrow {
+    margin: 0 0 0.35rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .tool-topline h2,
+  .results-heading h3 {
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(1.25rem, 3vw, 1.6rem);
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+  }
+
+  .local-status {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 0.48rem 0.7rem;
+    color: var(--muted);
+    background: var(--surface-soft);
+    font-size: 0.75rem;
+    font-weight: 650;
+  }
+
+  .local-status span {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--success) 15%, transparent);
+  }
+
+  .tool-form {
+    padding: 1.5rem;
+  }
+
+  .field-heading,
+  .input-help,
+  .form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .field-heading {
+    margin-bottom: 0.65rem;
+  }
+
+  .field-heading label {
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .field-heading span,
+  .input-help,
+  .form-actions p,
+  .result-note {
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
+  .field-heading .over-limit {
+    color: var(--error);
+  }
+
+  textarea {
+    display: block;
+    width: 100%;
+    min-height: 11rem;
+    resize: vertical;
+    border: 1px solid var(--hairline-strong);
+    border-radius: 1.15rem;
+    padding: 1rem;
+    color: var(--text);
+    background: var(--input-bg);
+    font:
+      500 0.9rem/1.65 ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    outline: none;
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      background 160ms ease;
+  }
+
+  textarea::placeholder {
+    color: var(--placeholder);
+  }
+
+  textarea:focus {
+    border-color: var(--action);
+    box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--action) 14%, transparent);
+    background: var(--surface-strong);
+  }
+
+  .input-help {
+    align-items: flex-start;
+    margin-top: 0.7rem;
+  }
+
+  .input-help p {
+    margin: 0;
+  }
+
+  code {
+    color: var(--text);
+    font: inherit;
+  }
+
+  .text-button,
+  .secondary-button,
+  .copy-button {
+    border: 0;
+    color: var(--action);
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .text-button {
+    flex: 0 0 auto;
+    padding: 0;
+    font-size: 0.78rem;
+  }
+
+  .input-errors {
+    margin-top: 1rem;
+    border: 1px solid color-mix(in srgb, var(--error) 28%, transparent);
+    border-radius: 0.9rem;
+    padding: 0.75rem 0.9rem;
+    color: var(--error);
+    background: color-mix(in srgb, var(--error) 7%, transparent);
+    font-size: 0.8rem;
+  }
+
+  .input-errors ul {
+    margin: 0;
+    padding-left: 1.1rem;
+  }
+
+  .form-actions {
+    margin-top: 1.15rem;
+  }
+
+  .form-actions p {
+    max-width: 19rem;
+    margin: 0;
+    text-align: right;
+  }
+
+  .form-actions strong {
+    color: var(--text);
+  }
+
+  .primary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    min-height: 3rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.8rem 1.25rem;
+    color: white;
+    background: var(--action);
+    box-shadow: 0 0.5rem 1.4rem color-mix(in srgb, var(--action) 24%, transparent);
+    font-size: 0.9rem;
+    font-weight: 750;
+    cursor: pointer;
+    transition:
+      filter 160ms ease,
+      transform 100ms ease-out;
+  }
+
+  .primary-button:hover {
+    filter: brightness(1.06);
+  }
+
+  .primary-button:active,
+  .secondary-button:active,
+  .copy-button:active,
+  .text-button:active {
+    transform: scale(0.975);
+  }
+
+  .primary-button svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .results {
+    border-top: 1px solid var(--hairline);
+    background: var(--results-bg);
+    animation: materialize 300ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .results-heading {
+    align-items: center;
+    padding-bottom: 1.1rem;
+  }
+
+  .result-actions {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .secondary-button,
+  .copy-button {
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 0.55rem 0.8rem;
+    color: var(--text);
+    background: var(--surface-strong);
+    font-size: 0.75rem;
+    transition:
+      background 160ms ease,
+      transform 100ms ease-out;
+  }
+
+  .secondary-button:hover,
+  .copy-button:hover {
+    background: var(--surface-hover);
+  }
+
+  .secondary-button.subtle {
+    color: var(--muted);
+  }
+
+  .code-list {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0 1rem 1rem;
+  }
+
+  :global(.code-row) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+    min-height: 5rem;
+    border: 1px solid var(--hairline);
+    border-radius: 1.05rem;
+    padding: 0.8rem 0.9rem 0.8rem 1rem;
+    background: var(--surface-strong);
+  }
+
+  :global(.code-identity) {
+    min-width: 0;
+  }
+
+  :global(.code-identity h4) {
+    overflow: hidden;
+    margin: 0 0 0.25rem;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 720;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :global(.code-identity p) {
+    margin: 0;
+    color: var(--muted);
+    font:
+      500 0.68rem/1.3 ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+  }
+
+  :global(.code-value) {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  :global(.code-value output) {
+    min-width: 7ch;
+    color: var(--text);
+    font:
+      720 clamp(1.25rem, 4vw, 1.65rem)/1 ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      monospace;
+    letter-spacing: 0.06em;
+    transition: opacity 140ms ease;
+  }
+
+  :global(.timer-ring) {
+    --timer-progress: 1;
+    display: inline-grid;
+    width: 2.15rem;
+    height: 2.15rem;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--muted);
+    background:
+      radial-gradient(circle, var(--surface-strong) 56%, transparent 58%),
+      conic-gradient(var(--action) calc(var(--timer-progress) * 1turn), var(--hairline) 0);
+    font:
+      700 0.62rem/1 ui-monospace,
+      monospace;
+  }
+
+  .result-note {
+    margin: 0;
+    padding: 0 1.5rem 1.5rem;
+  }
+
+  .tool-proof {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--hairline);
+    background: var(--surface-soft);
+  }
+
+  .tool-proof span {
+    padding: 0.75rem 0.5rem;
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 650;
+    text-align: center;
+  }
+
+  .tool-proof span + span {
+    border-left: 1px solid var(--hairline);
+  }
+
+  @keyframes materialize {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem) scale(0.995);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .tool-card {
+      border-radius: 1.35rem;
+    }
+
+    .tool-topline,
+    .results-heading,
+    .tool-form {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .tool-topline,
+    .input-help,
+    .form-actions {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .form-actions p {
+      text-align: left;
+    }
+
+    .primary-button {
+      width: 100%;
+    }
+
+    :global(.code-row) {
+      grid-template-columns: 1fr;
+    }
+
+    :global(.code-value) {
+      justify-content: space-between;
+    }
+
+    .tool-proof {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .tool-proof span:nth-child(3) {
+      border-left: 0;
+      border-top: 1px solid var(--hairline);
+    }
+
+    .tool-proof span:nth-child(4) {
+      border-top: 1px solid var(--hairline);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .results {
+      animation: none;
+    }
+
+    .primary-button,
+    .secondary-button,
+    .copy-button,
+    textarea {
+      transition-duration: 0.01ms;
+    }
+  }
+</style>

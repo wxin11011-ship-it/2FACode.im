@@ -1,0 +1,46 @@
+<span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
+<span class="brand-word">2FA<span>Code</span></span>
+
+<style>
+  .brand-mark {
+    position: relative;
+    display: inline-grid;
+    width: 1.55rem;
+    height: 1.55rem;
+    margin-right: 0.55rem;
+    place-items: center;
+    border: 1px solid var(--hairline-strong, rgba(0, 0, 0, 0.16));
+    border-radius: 0.52rem;
+    background: var(--surface-strong, white);
+  }
+
+  .brand-mark span {
+    position: absolute;
+    width: 0.7rem;
+    height: 0.7rem;
+    border: 1.6px solid currentColor;
+    border-radius: 50%;
+  }
+
+  .brand-mark span:first-child {
+    transform: translate(-0.2rem, -0.08rem);
+  }
+
+  .brand-mark span:last-child {
+    transform: translate(0.2rem, 0.08rem);
+    border-color: var(--action, #0071e3);
+  }
+
+  .brand-word {
+    color: var(--text, #1d1d1f);
+    font-size: 1rem;
+    font-weight: 760;
+    letter-spacing: -0.025em;
+    white-space: nowrap;
+  }
+
+  .brand-word span {
+    color: var(--muted, #6e6e73);
+    font-weight: 650;
+  }
+</style>

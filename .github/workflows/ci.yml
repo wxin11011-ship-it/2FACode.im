@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.12.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check source
+        run: pnpm check
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Build deployment artifact
+        run: pnpm build
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high --registry=https://registry.npmjs.org
+
+      - name: Audit all dependencies
+        run: pnpm audit --audit-level high --registry=https://registry.npmjs.org

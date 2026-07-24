@@ -1,0 +1,891 @@
+---
+import TwoFactorTool from '~/components/TwoFactorTool.astro';
+import Footer from '~/components/widgets/Footer.astro';
+import Header from '~/components/widgets/Header.astro';
+import Layout from '~/layouts/Layout.astro';
+import { footerData, headerData } from '~/navigation';
+
+const metadata = {
+  title: '2FA Code Generator — Private, Fast, Browser-Only',
+  description:
+    'Generate one or up to 50 TOTP codes in your browser. No uploads, account, or secret storage. Paste a Base32 key or otpauth URI and copy instantly.',
+  ignoreTitleTemplate: true,
+  canonical: 'https://2facode.im/',
+  openGraph: {
+    title: '2FA Code Generator — Private, Fast, Browser-Only',
+    description: 'Generate one or up to 50 TOTP codes locally in your browser. No uploads, account, or secret storage.',
+    type: 'website',
+    images: [
+      {
+        url: '~/assets/images/2facode-og.png',
+        width: 1200,
+        height: 630,
+        alt: '2FACode private browser-based 2FA code generator',
+      },
+    ],
+  },
+};
+
+const faqs = [
+  {
+    question: 'Is it safe to enter my 2FA secret key here?',
+    answer:
+      '2FACode processes the secret in this browser tab and does not send it to an API, analytics service, or storage system. That removes the server-upload risk, but no web tool can protect a secret from a compromised device, malicious browser extension, or a look-alike domain. Use a trusted device, confirm the domain, clear the workspace when finished, and prefer a dedicated authenticator or encrypted vault for long-term storage.',
+  },
+  {
+    question: 'Does 2FACode store my secret keys or generated codes?',
+    answer:
+      'No. The generator does not put 2FA secrets or codes in LocalStorage, SessionStorage, IndexedDB, cookies, URLs, or a server database. Active entries exist only in page memory and disappear when you clear the workspace, close the tab, or reload the page. The separate theme preference may be stored locally, but it never contains authentication data.',
+  },
+  {
+    question: 'Can I generate multiple 2FA codes at once?',
+    answer:
+      'Yes. The bulk 2FA generator accepts up to 50 non-empty lines in one batch. Paste a Base32 secret on each line, use “Label | SECRET” to keep accounts recognizable, or paste standard otpauth TOTP URIs. Each valid entry receives its own live code and countdown, while an invalid line gets a line-specific error without exposing the submitted secret.',
+  },
+  {
+    question: 'What is a TOTP generator and how does it work?',
+    answer:
+      'A TOTP generator creates a time-based one-time password from a shared secret and the current time. Under RFC 6238, the authenticator and the service independently perform the same HMAC calculation for the same time window, so they produce a matching 2FA code without contacting each other. Most services use six digits, SHA-1, and a 30-second period, although an otpauth URI can specify supported alternatives.',
+  },
+  {
+    question: 'Where do I find my 2FA secret key?',
+    answer:
+      'The service you are protecting shows the secret when you first enable an authenticator app. Look for wording such as “enter setup key manually,” “can’t scan the QR code,” or “show secret.” It is usually a Base32 string. If setup is already complete and the service no longer shows the secret, use its recovery flow or a saved backup; this 2FA code generator cannot recover a missing key.',
+  },
+  {
+    question: 'Is this online 2FA code generator free?',
+    answer:
+      'Yes. The current 2FA code generator is free to use, requires no account, and has no paid generation limit. The 50-line cap keeps the interface responsive and makes accidental oversized pastes easier to catch. There are no display ads or affiliate scripts in the generator.',
+  },
+  {
+    question: 'Do I need an app or browser extension?',
+    answer:
+      'No app or extension is required for this temporary browser workflow. A modern browser with HTTPS and Web Crypto support is enough. For daily use or permanent storage, a reputable authenticator app, hardware-backed solution, or encrypted password manager may provide stronger isolation and recovery options than repeatedly entering a secret on a website.',
+  },
+  {
+    question: 'Why does my 2FA code change every 30 seconds?',
+    answer:
+      'The short lifetime is part of TOTP’s design. Time is divided into fixed periods—commonly 30 seconds—and each period produces a different 2FA code. A service may allow a small neighboring window for clock drift, but an old code quickly stops working. The circular timer beside every result shows how much of the current period remains.',
+  },
+  {
+    question: 'Why is my 2FA code not working?',
+    answer:
+      'First set your device clock and time zone to automatic, then wait for a fresh 2FA code and try again. Confirm that the Base32 secret belongs to the exact account, that no character was lost during copying, and that an imported URI uses the expected algorithm, digit count, and period. If a previously working secret suddenly fails, use the provider’s recovery or support process rather than repeatedly guessing codes.',
+  },
+  {
+    question: 'Does it work with Google, Microsoft, GitHub, Facebook, and Discord?',
+    answer:
+      'It works with services that provide a standards-based TOTP secret or otpauth TOTP URI. Many Google, Microsoft, GitHub, Facebook, Discord, Amazon, and other account setups use that standard, but each company can offer additional 2FA methods or recovery rules. 2FACode is independent and is not endorsed by or affiliated with those services.',
+  },
+  {
+    question: 'Can this recover a lost secret key or bypass 2FA?',
+    answer:
+      'No. A valid 2FA code requires the original shared secret; the generator cannot derive that secret from an account name, an expired code, or a login page. It cannot bypass two-factor authentication, receive SMS codes, or unlock an account. Use the account provider’s backup codes, recovery method, or support channel if the secret is lost.',
+  },
+  {
+    question: 'Should I use a website instead of a dedicated authenticator app?',
+    answer:
+      'Use this website for a deliberate temporary workflow, testing, or a batch you do not want to save. A trusted authenticator app or encrypted vault is usually a better home for long-lived secrets because it can add device encryption, biometric access, backup, and stronger isolation. Browser-only processing is a useful privacy property, not a promise that every browser environment is risk-free.',
+  },
+];
+
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: '2FACode',
+    url: 'https://2facode.im/',
+    description: 'A browser-only 2FA and TOTP code generator for one or multiple secrets.',
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: '2FACode',
+    applicationCategory: 'SecurityApplication',
+    operatingSystem: 'Any modern web browser',
+    url: 'https://2facode.im/',
+    sameAs: 'https://github.com/wxin11011-ship-it/2FACode.im',
+    license: 'https://github.com/wxin11011-ship-it/2FACode.im/blob/main/LICENSE',
+    offers: {
+      '@type': 'Offer',
+      price: '0',
+      priceCurrency: 'USD',
+    },
+    featureList: [
+      'Browser-only TOTP generation',
+      'Up to 50 entries per batch',
+      'Base32 and otpauth TOTP URI input',
+      'No secret persistence',
+      'Automatic code refresh',
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.answer,
+      },
+    })),
+  },
+];
+---
+
+<Layout metadata={metadata}>
+  <a class="skip-link" href="#main-content">Skip to the generator</a>
+  <Header {...headerData} isSticky showToggleTheme={true} />
+
+  <main id="main-content" class="home-page">
+    <section class="hero-section">
+      <div class="ambient ambient-one" aria-hidden="true"></div>
+      <div class="ambient ambient-two" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <p class="hero-kicker"><span></span> Private by design</p>
+        <h1>2FA Code Generator</h1>
+        <p class="hero-intro">
+          Generate one or up to 50 live TOTP codes without sending a secret anywhere. This 2FA code generator runs in
+          your browser, stores nothing, and keeps the fastest path visible.
+        </p>
+        <div class="hero-trust" aria-label="Product principles">
+          <span>Local processing</span>
+          <span>No account</span>
+          <span>No tracking</span>
+        </div>
+      </div>
+
+      <TwoFactorTool />
+
+      <p class="hero-footnote">
+        Built for standard TOTP—not SMS codes, account recovery, or bypassing two-factor authentication.
+      </p>
+    </section>
+
+    <section class="content-section intro-section" aria-labelledby="how-title">
+      <div class="section-heading">
+        <p class="section-kicker">Simple by default</p>
+        <h2 id="how-title">How to generate a 2FA code online</h2>
+        <p>
+          Paste the manual setup secret from the service you are protecting, generate the current code, then copy it
+          into that service. Everything needed for the calculation is already in the secret and your device's current
+          time, so this online TOTP generator does not need an API call.
+        </p>
+      </div>
+
+      <div class="step-grid">
+        <article>
+          <span>01</span>
+          <h3>Paste the setup key</h3>
+          <p>
+            Use a Base32 secret, add an optional label with a vertical bar, or paste an otpauth URI for the 2FA code.
+          </p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>Generate locally</h3>
+          <p>
+            The 2FA code is calculated with bundled browser-local cryptography and the settings carried by the entry.
+          </p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>Copy, use, clear</h3>
+          <p>Copy one 2FA code or the whole labeled batch, then clear the page memory when the task is complete.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="features" class="content-section showcase-section" aria-labelledby="bulk-title">
+      <div class="section-heading">
+        <p class="section-kicker">Less repetition</p>
+        <h2 id="bulk-title">A bulk 2FA generator without the busywork</h2>
+        <p>
+          A batch should feel as direct as a single code. The same input accepts up to 50 entries, preserves useful
+          labels, reports bad lines individually, and refreshes every valid 2FA code in place. There is no save mode to
+          accidentally leave enabled and no share link that can expose a secret later.
+        </p>
+      </div>
+
+      <div class="showcase-grid">
+        <figure>
+          <img
+            src="/images/bulk-2fa-codes.svg"
+            width="480"
+            height="320"
+            loading="lazy"
+            decoding="async"
+            alt="Bulk 2FA generator showing multiple masked accounts and six-digit codes"
+          />
+          <figcaption><strong>Batch without clutter.</strong> One line in, one clearly labeled code out.</figcaption>
+        </figure>
+        <figure>
+          <img
+            src="/images/browser-only-2fa.svg"
+            width="480"
+            height="320"
+            loading="lazy"
+            decoding="async"
+            alt="Browser-only 2FA code generation with no server transfer"
+          />
+          <figcaption>
+            <strong>Local by construction.</strong> No generation endpoint and no secret database.
+          </figcaption>
+        </figure>
+        <figure>
+          <img
+            src="/images/totp-30-second-cycle.svg"
+            width="480"
+            height="320"
+            loading="lazy"
+            decoding="async"
+            alt="TOTP generator countdown showing a 30-second code cycle"
+          />
+          <figcaption>
+            <strong>Time made visible.</strong> Every entry shows exactly when its code will change.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="security" class="content-section proof-section" aria-labelledby="privacy-title">
+      <div class="proof-copy">
+        <p class="section-kicker">Specific, not vague</p>
+        <h2 id="privacy-title">What “browser-only” actually means</h2>
+        <p>
+          The 2FA code generator is delivered as a static page. Code generation happens inside the tab; the tool does
+          not call a generation API, install analytics, or write authentication data to browser storage. You can inspect
+          the Network panel while generating a 2FA code and reload the page to confirm that the workspace is gone.
+        </p>
+        <p>
+          That design removes a common risk, but it does not make a browser invulnerable. A malicious extension,
+          compromised operating system, copied look-alike site, or altered future build could still read what a user
+          types. For high-value accounts, treat this as a temporary utility and keep long-lived secrets in a trusted,
+          isolated authenticator or encrypted vault.
+        </p>
+      </div>
+      <dl class="proof-list">
+        <div><dt>Server requests</dt><dd>None during generation</dd></div>
+        <div><dt>Secret persistence</dt><dd>None by default</dd></div>
+        <div><dt>Runtime ads</dt><dd>None</dd></div>
+        <div><dt>Standard</dt><dd>RFC 6238 TOTP</dd></div>
+      </dl>
+    </section>
+
+    <section class="content-section split-section" aria-labelledby="totp-title">
+      <div>
+        <p class="section-kicker">Same input, same moment</p>
+        <h2 id="totp-title">Why TOTP codes change every 30 seconds</h2>
+      </div>
+      <div class="split-copy">
+        <p>
+          TOTP means time-based one-time password. The authenticator and the account service share the same secret,
+          divide time into equal windows, and independently calculate the matching value for the current window. The
+          standard default is a 30-second period with HMAC-SHA-1 and six digits.
+        </p>
+        <p>
+          An otpauth URI may specify SHA-256, SHA-512, seven or eight digits, or another reasonable period. This free
+          online TOTP generator reads those supported settings instead of silently forcing every entry into one format.
+          A plain Base32 line uses the common six-digit, 30-second default.
+        </p>
+      </div>
+    </section>
+
+    <section class="content-section troubleshooting-section" aria-labelledby="trouble-title">
+      <div class="section-heading">
+        <p class="section-kicker">Fix the cause</p>
+        <h2 id="trouble-title">When a 2FA code does not work</h2>
+        <p>
+          A rejected 2FA code is usually a time, secret, or configuration mismatch—not something that can be fixed by
+          generating random numbers. Use a new code after each check, and switch to the provider's recovery process if
+          the original secret is no longer available. Generate a fresh 2FA code after correcting each mismatch.
+        </p>
+      </div>
+      <div class="check-grid">
+        <article>
+          <h3>Sync the clock</h3><p>Enable automatic date, time, and time zone on the device running the generator.</p>
+        </article>
+        <article>
+          <h3>Check the secret</h3><p>
+            Confirm every Base32 character and make sure the key belongs to the account being opened.
+          </p>
+        </article>
+        <article>
+          <h3>Check the settings</h3><p>
+            For non-default setups, use the full otpauth URI so algorithm, digits, and period travel together.
+          </p>
+        </article>
+        <article>
+          <h3>Use recovery safely</h3><p>
+            A generator cannot recreate a lost secret. Use saved backup codes or the service's official support flow.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section id="faq" class="content-section faq-section" aria-labelledby="faq-title">
+      <div class="section-heading">
+        <p class="section-kicker">Useful answers</p>
+        <h2 id="faq-title">2FA code generator FAQ</h2>
+        <p>
+          These answers cover the practical questions people ask before putting a sensitive setup key into an online
+          tool. The short version: understand where the secret came from, keep it local, and know when a dedicated
+          authenticator is the better choice.
+        </p>
+      </div>
+
+      <div class="faq-list">
+        {
+          faqs.map((faq, index) => (
+            <details open={index === 0}>
+              <summary>
+                <span>{faq.question}</span>
+                <svg viewBox="0 0 20 20" aria-hidden="true">
+                  <path
+                    d="M5 7.5 10 12.5 15 7.5"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.6"
+                  />
+                </svg>
+              </summary>
+              <p>{faq.answer}</p>
+            </details>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="final-section" aria-labelledby="final-title">
+      <p class="section-kicker">Ready when you are</p>
+      <h2 id="final-title">Generate your 2FA codes, then leave no batch behind</h2>
+      <p>One secret or fifty, the workflow stays local, temporary, and easy to clear.</p>
+      <a href="#generator">Open the 2FA code generator</a>
+    </section>
+  </main>
+
+  <Footer {...footerData} />
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
+</Layout>
+
+<style is:global>
+  :root {
+    color-scheme: light;
+    --canvas: #f5f5f7;
+    --surface-strong: rgba(255, 255, 255, 0.94);
+    --surface-soft: rgba(255, 255, 255, 0.6);
+    --surface-hover: #f0f0f2;
+    --input-bg: #f7f7f8;
+    --results-bg: #f7f7f8;
+    --text: #1d1d1f;
+    --muted: #6e6e73;
+    --placeholder: #9a9a9f;
+    --hairline: rgba(0, 0, 0, 0.08);
+    --hairline-strong: rgba(0, 0, 0, 0.14);
+    --action: #0071e3;
+    --success: #248a3d;
+    --error: #c9342b;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --canvas: #050505;
+    --surface-strong: rgba(24, 24, 25, 0.96);
+    --surface-soft: rgba(31, 31, 33, 0.66);
+    --surface-hover: #29292b;
+    --input-bg: #101011;
+    --results-bg: #0e0e0f;
+    --text: #f5f5f7;
+    --muted: #a1a1a6;
+    --placeholder: #6e6e73;
+    --hairline: rgba(255, 255, 255, 0.11);
+    --hairline-strong: rgba(255, 255, 255, 0.18);
+    --action: #2997ff;
+    --success: #30d158;
+    --error: #ff6961;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    color: var(--text);
+    background: var(--canvas);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+  }
+
+  .skip-link {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 100;
+    transform: translateY(-150%);
+    border-radius: 999px;
+    padding: 0.65rem 0.9rem;
+    color: white;
+    background: var(--action);
+  }
+
+  .skip-link:focus {
+    transform: translateY(0);
+  }
+
+  #header {
+    border-bottom: 1px solid transparent;
+    background: color-mix(in srgb, var(--canvas) 78%, transparent);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  #header.scroll {
+    border-bottom-color: var(--hairline);
+  }
+
+  #header a,
+  #header button {
+    color: var(--text);
+  }
+
+  #header a:hover,
+  #header button:hover {
+    color: var(--muted);
+  }
+
+  .home-page {
+    overflow: hidden;
+    background: var(--canvas);
+  }
+
+  .hero-section {
+    position: relative;
+    min-height: calc(100svh - 4rem);
+    padding: clamp(5rem, 11vw, 8.5rem) 0 4rem;
+    isolation: isolate;
+  }
+
+  .ambient {
+    position: absolute;
+    z-index: -1;
+    border-radius: 50%;
+    filter: blur(1px);
+    pointer-events: none;
+  }
+
+  .ambient-one {
+    top: -18rem;
+    left: 50%;
+    width: 52rem;
+    height: 35rem;
+    transform: translateX(-50%);
+    background: radial-gradient(circle, color-mix(in srgb, var(--action) 10%, transparent), transparent 68%);
+  }
+
+  .ambient-two {
+    top: 18rem;
+    right: -16rem;
+    width: 34rem;
+    height: 34rem;
+    background: radial-gradient(circle, color-mix(in srgb, var(--success) 7%, transparent), transparent 70%);
+  }
+
+  .hero-copy {
+    width: min(100% - 2rem, 62rem);
+    margin: 0 auto clamp(2rem, 5vw, 3.5rem);
+    text-align: center;
+  }
+
+  .hero-kicker,
+  .section-kicker {
+    margin: 0 0 0.8rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 750;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .hero-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .hero-kicker span {
+    width: 0.48rem;
+    height: 0.48rem;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 0.22rem color-mix(in srgb, var(--success) 14%, transparent);
+  }
+
+  .hero-copy h1 {
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(3rem, 8.7vw, 6.8rem);
+    font-weight: 760;
+    line-height: 0.98;
+    letter-spacing: -0.055em;
+  }
+
+  .hero-intro {
+    max-width: 48rem;
+    margin: 1.5rem auto 0;
+    color: var(--muted);
+    font-size: clamp(1rem, 2.2vw, 1.3rem);
+    line-height: 1.55;
+  }
+
+  .hero-trust {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem;
+    margin-top: 1.35rem;
+  }
+
+  .hero-trust span {
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 0.42rem 0.68rem;
+    color: var(--muted);
+    background: var(--surface-soft);
+    font-size: 0.72rem;
+    font-weight: 650;
+  }
+
+  .hero-footnote {
+    width: min(100% - 2rem, 48rem);
+    margin: 1rem auto 0;
+    color: var(--muted);
+    font-size: 0.76rem;
+    text-align: center;
+  }
+
+  .content-section {
+    width: min(100% - 2rem, 72rem);
+    margin: 0 auto;
+    padding: clamp(4.5rem, 10vw, 8rem) 0;
+  }
+
+  .content-section + .content-section {
+    border-top: 1px solid var(--hairline);
+  }
+
+  .section-heading {
+    max-width: 46rem;
+    margin-bottom: 3rem;
+  }
+
+  .section-heading h2,
+  .proof-copy h2,
+  .split-section h2,
+  .final-section h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: clamp(2.1rem, 5vw, 4.3rem);
+    font-weight: 740;
+    line-height: 1.03;
+    letter-spacing: -0.045em;
+  }
+
+  .section-heading > p:last-child,
+  .proof-copy > p,
+  .split-copy p,
+  .final-section > p {
+    color: var(--muted);
+    font-size: clamp(1rem, 1.8vw, 1.12rem);
+    line-height: 1.7;
+  }
+
+  .step-grid,
+  .check-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .step-grid article,
+  .check-grid article {
+    border: 1px solid var(--hairline);
+    border-radius: 1.35rem;
+    padding: 1.4rem;
+    background: var(--surface-soft);
+  }
+
+  .step-grid article > span {
+    color: var(--action);
+    font:
+      720 0.74rem/1 ui-monospace,
+      monospace;
+  }
+
+  .step-grid h3,
+  .check-grid h3 {
+    margin: 1.4rem 0 0.55rem;
+    color: var(--text);
+    font-size: 1rem;
+    letter-spacing: -0.015em;
+  }
+
+  .step-grid p,
+  .check-grid p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.86rem;
+    line-height: 1.6;
+  }
+
+  .showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .showcase-grid figure {
+    overflow: hidden;
+    margin: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 1.5rem;
+    background: var(--surface-strong);
+  }
+
+  .showcase-grid img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: var(--surface-soft);
+  }
+
+  .showcase-grid figcaption {
+    padding: 1rem 1.1rem 1.2rem;
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  .showcase-grid strong {
+    color: var(--text);
+  }
+
+  .proof-section,
+  .split-section {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+    align-items: start;
+    gap: clamp(3rem, 9vw, 8rem);
+  }
+
+  .proof-copy p {
+    margin: 1.4rem 0 0;
+  }
+
+  .proof-list {
+    overflow: hidden;
+    margin: 0;
+    border: 1px solid var(--hairline);
+    border-radius: 1.4rem;
+    background: var(--surface-strong);
+  }
+
+  .proof-list div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+  }
+
+  .proof-list div + div {
+    border-top: 1px solid var(--hairline);
+  }
+
+  .proof-list dt {
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
+  .proof-list dd {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .split-copy p:first-child {
+    margin-top: 0;
+  }
+
+  .check-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .check-grid h3 {
+    margin-top: 0;
+  }
+
+  .faq-section {
+    width: min(100% - 2rem, 56rem);
+  }
+
+  .faq-list {
+    border-top: 1px solid var(--hairline);
+  }
+
+  .faq-list details {
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .faq-list summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.25rem 0;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .faq-list summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-list summary svg {
+    flex: 0 0 auto;
+    width: 1.1rem;
+    height: 1.1rem;
+    color: var(--muted);
+    transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .faq-list details[open] summary svg {
+    transform: rotate(180deg);
+  }
+
+  .faq-list details p {
+    max-width: 48rem;
+    margin: -0.25rem 0 1.4rem;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+
+  .final-section {
+    width: min(100% - 2rem, 70rem);
+    margin: 2rem auto 6rem;
+    border: 1px solid var(--hairline);
+    border-radius: 2rem;
+    padding: clamp(3rem, 8vw, 6rem) 1.5rem;
+    background: var(--surface-strong);
+    text-align: center;
+  }
+
+  .final-section h2 {
+    max-width: 52rem;
+    margin: 0 auto;
+  }
+
+  .final-section > p {
+    margin: 1.2rem auto 1.8rem;
+  }
+
+  .final-section a {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 0.9rem 1.25rem;
+    color: white;
+    background: var(--action);
+    font-size: 0.88rem;
+    font-weight: 750;
+    text-decoration: none;
+    transition:
+      filter 160ms ease,
+      transform 100ms ease-out;
+  }
+
+  .final-section a:hover {
+    filter: brightness(1.07);
+  }
+
+  .final-section a:active {
+    transform: scale(0.98);
+  }
+
+  footer {
+    color: var(--muted);
+    border-color: var(--hairline) !important;
+    background: var(--canvas) !important;
+  }
+
+  @media (max-width: 800px) {
+    .showcase-grid,
+    .proof-section,
+    .split-section {
+      grid-template-columns: 1fr;
+    }
+
+    .showcase-grid {
+      max-width: 34rem;
+      margin: 0 auto;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .hero-section {
+      padding-top: 4.75rem;
+    }
+
+    .step-grid,
+    .check-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .content-section {
+      padding: 4.25rem 0;
+    }
+
+    .section-heading {
+      margin-bottom: 2rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    .ambient {
+      display: none;
+    }
+
+    .faq-list summary svg,
+    .final-section a {
+      transition-duration: 0.01ms;
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    #header,
+    .tool-card,
+    .showcase-grid figure {
+      backdrop-filter: none;
+      background: var(--surface-strong);
+    }
+  }
+
+  @media (prefers-contrast: more) {
+    :root,
+    .dark {
+      --hairline: currentColor;
+      --hairline-strong: currentColor;
+    }
+  }
+</style>

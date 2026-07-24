@@ -1,0 +1,32 @@
+site:
+  name: 2FACode
+  site: 'https://2facode.im'
+  base: '/'
+  trailingSlash: false
+
+  googleSiteVerificationId: '' # Google Search Console 验证码
+
+metadata:
+  title:
+    default: 2FACode
+    template: '%s — 2FACode'
+  description: 'Private, browser-only 2FA and TOTP code generation for one secret or a batch.'
+  robots:
+    index: true
+    follow: true
+  openGraph:
+    site_name: 2FACode
+    type: website
+
+# 国际化配置（可选）
+i18n:
+  language: en
+  textDirection: ltr
+
+analytics:
+  vendors:
+    googleAnalytics:
+      id: null
+
+ui:
+  theme: 'system'

@@ -1,0 +1,88 @@
+---
+import Layout from '~/layouts/Layout.astro';
+import Header from '~/components/widgets/Header.astro';
+import Footer from '~/components/widgets/Footer.astro';
+
+import { headerData, footerData } from '~/navigation';
+
+import type { MetaData } from '~/types';
+
+export interface Props {
+  metadata?: MetaData;
+  frontmatter?: MetaData;
+}
+
+const { metadata, frontmatter = {} } = Astro.props;
+const resolvedMetadata = {
+  ...frontmatter,
+  ...metadata,
+};
+---
+
+<Layout metadata={resolvedMetadata}>
+  <slot name="header">
+    <Header {...headerData} isSticky showToggleTheme={true} />
+  </slot>
+  <main class="bg-white dark:bg-[#1a1a1a]">
+    <article
+      class="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16 prose prose-gray dark:prose-invert prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline"
+    >
+      <slot />
+    </article>
+  </main>
+  <slot name="footer">
+    <Footer {...footerData} />
+  </slot>
+</Layout>
+
+<style is:global>
+  /* 亮色模式 - 白底黑字 */
+  body {
+    background-color: #f8f8f8;
+  }
+
+  header {
+    background-color: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  header a,
+  header button {
+    color: #111;
+  }
+
+  header a:hover,
+  header button:hover {
+    color: #666;
+  }
+
+  /* Logo 样式 */
+  header .text-2xl {
+    color: #111 !important;
+  }
+
+  /* 暗黑模式 */
+  .dark body {
+    background-color: #0f0f0f;
+  }
+
+  .dark header {
+    background-color: rgba(17, 17, 17, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .dark header a,
+  .dark header button {
+    color: #f5f5f5;
+  }
+
+  .dark header a:hover,
+  .dark header button:hover {
+    color: #999;
+  }
+
+  .dark header .text-2xl {
+    color: #f5f5f5 !important;
+  }
+</style>

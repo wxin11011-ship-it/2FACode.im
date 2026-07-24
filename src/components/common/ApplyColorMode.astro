@@ -1,0 +1,33 @@
+---
+import { UI } from 'astrowind:config';
+---
+
+<script is:inline define:vars={{ defaultTheme: UI.theme || 'system' }}>
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }
+
+  function getSavedTheme() {
+    try {
+      return localStorage.getItem('theme');
+    } catch {
+      return null;
+    }
+  }
+
+  const colorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+  const savedTheme = getSavedTheme();
+  const fixedTheme = defaultTheme?.endsWith(':only') ? defaultTheme.replace(':only', '') : null;
+
+  applyTheme(fixedTheme || savedTheme || (defaultTheme === 'system' && colorScheme.matches ? 'dark' : 'light'));
+
+  colorScheme.addEventListener('change', (event) => {
+    if (!fixedTheme && !getSavedTheme() && defaultTheme === 'system') {
+      applyTheme(event.matches ? 'dark' : 'light');
+    }
+  });
+</script>
