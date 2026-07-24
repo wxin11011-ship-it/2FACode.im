@@ -14,19 +14,26 @@ import { GITHUB_REPO_URL } from '~/navigation';
         <label for="totp-input">2FA secret keys</label>
         <span data-line-count>0 / 50 lines</span>
       </div>
-      <textarea
-        id="totp-input"
-        data-totp-input
-        name="secrets"
-        rows="6"
-        autocomplete="off"
-        autocapitalize="none"
-        spellcheck="false"
-        placeholder={'Paste one secret per line…\nAccount name | BASE32SECRET\notpauth://totp/…'}
-        aria-describedby="input-help input-errors"></textarea>
+      <div class="input-shell" data-drop-zone>
+        <textarea
+          id="totp-input"
+          data-totp-input
+          name="secrets"
+          rows="6"
+          autocomplete="off"
+          autocapitalize="none"
+          spellcheck="false"
+          placeholder={'Paste one secret per line…\nAccount name | BASE32SECRET\notpauth://totp/…'}
+          aria-describedby="input-help input-errors"></textarea>
+        <p class="drop-hint" data-drop-hint hidden>Drop QR image to decode</p>
+        <input type="file" data-qr-file accept="image/*" hidden />
+      </div>
       <div id="input-help" class="input-help">
-        <p>Gray text is only a hint — paste to replace it. One secret per line, up to 50.</p>
-        <button type="button" class="text-button" data-demo>Try demo key</button>
+        <p>Paste secrets, or upload a setup QR screenshot. Decoded in this browser only.</p>
+        <div class="help-actions">
+          <button type="button" class="text-button" data-qr-upload>Upload QR image</button>
+          <button type="button" class="text-button" data-demo>Try demo key</button>
+        </div>
       </div>
 
       <div id="input-errors" class="input-errors" data-errors role="alert" aria-live="polite" hidden></div>
@@ -55,6 +62,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
 </section>
 
 <script>
+  import jsQR from 'jsqr';
   import { TotpInputError, generateTotp, getSecondsRemaining, maskSecret, parseInput } from '~/scripts/totp.mjs';
 
   type TotpEntry = {
@@ -82,6 +90,10 @@ import { GITHUB_REPO_URL } from '~/navigation';
     const copyAll = tool.querySelector('[data-copy-all]');
     const clear = tool.querySelector('[data-clear]');
     const demo = tool.querySelector('[data-demo]');
+    const qrUpload = tool.querySelector('[data-qr-upload]');
+    const qrFile = tool.querySelector('[data-qr-file]');
+    const dropZone = tool.querySelector('[data-drop-zone]');
+    const dropHint = tool.querySelector('[data-drop-hint]');
 
     let activeEntries: TotpEntry[] = [];
     let activeTokens = new Map<string, string>();
@@ -239,22 +251,14 @@ import { GITHUB_REPO_URL } from '~/navigation';
       setErrors([]);
     };
 
-    input?.addEventListener('input', () => {
+    const syncLineCount = () => {
       if (!(input instanceof HTMLTextAreaElement) || !(lineCount instanceof HTMLElement)) return;
       const count = input.value.split(/\r?\n/).filter((line) => line.trim()).length;
       lineCount.textContent = `${count} / 50 lines`;
       lineCount.classList.toggle('over-limit', count > 50);
-    });
+    };
 
-    demo?.addEventListener('click', () => {
-      if (!(input instanceof HTMLTextAreaElement)) return;
-      input.value = 'Public RFC demo | GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ';
-      input.dispatchEvent(new Event('input'));
-      input.focus();
-    });
-
-    form?.addEventListener('submit', async (event) => {
-      event.preventDefault();
+    const runGenerate = async () => {
       if (!(input instanceof HTMLTextAreaElement)) return;
 
       const requestId = ++generationId;
@@ -294,6 +298,130 @@ import { GITHUB_REPO_URL } from '~/navigation';
         setErrors([message]);
         if (results instanceof HTMLElement) results.hidden = true;
       }
+    };
+
+    const normalizeQrPayload = (raw: string) => {
+      const text = raw.trim();
+      if (!text) throw new Error('The QR code was empty.');
+
+      if (text.toLowerCase().startsWith('otpauth://')) {
+        if (!text.toLowerCase().startsWith('otpauth://totp/')) {
+          throw new Error('Only otpauth TOTP QR codes are supported (not HOTP or other types).');
+        }
+        return text;
+      }
+
+      // Some apps put only the Base32 secret in a QR
+      const compact = text.replace(/[\s-]+/g, '');
+      if (/^[A-Za-z2-7]+=*$/.test(compact) && compact.replace(/=+$/g, '').length >= 16) {
+        return compact.toUpperCase().replace(/=+$/g, '');
+      }
+
+      throw new Error('No TOTP setup data found in that image. Use an authenticator setup QR or paste the secret.');
+    };
+
+    const decodeQrFromFile = async (file: File) => {
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Please choose an image file (PNG, JPG, WebP, etc.).');
+      }
+
+      const bitmap = await createImageBitmap(file);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) throw new Error('Could not read that image.');
+        ctx.drawImage(bitmap, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'attemptBoth',
+        });
+        if (!code?.data) {
+          throw new Error('No QR code found. Try a clearer screenshot of the setup QR.');
+        }
+        return normalizeQrPayload(code.data);
+      } finally {
+        bitmap.close();
+      }
+    };
+
+    const applyQrPayload = async (payload: string) => {
+      if (!(input instanceof HTMLTextAreaElement)) return;
+      const existing = input.value.trim();
+      // Append as a new line if the box already has entries (batch-friendly)
+      input.value = existing ? `${existing}\n${payload}` : payload;
+      input.dispatchEvent(new Event('input'));
+      input.focus();
+      await runGenerate();
+    };
+
+    const handleQrFiles = async (files: FileList | File[] | null) => {
+      const file = files && files[0];
+      if (!file) return;
+      setErrors([]);
+      if (qrUpload instanceof HTMLButtonElement) {
+        qrUpload.disabled = true;
+        qrUpload.textContent = 'Reading…';
+      }
+      try {
+        const payload = await decodeQrFromFile(file);
+        await applyQrPayload(payload);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Could not read that QR image.';
+        setErrors([message]);
+      } finally {
+        if (qrUpload instanceof HTMLButtonElement) {
+          qrUpload.disabled = false;
+          qrUpload.textContent = 'Upload QR image';
+        }
+        if (qrFile instanceof HTMLInputElement) qrFile.value = '';
+      }
+    };
+
+    demo?.addEventListener('click', () => {
+      if (!(input instanceof HTMLTextAreaElement)) return;
+      input.value = 'Public RFC demo | GEZD GNBV GY3T QOJQ GEZD GNBV GY3T QOJQ';
+      input.dispatchEvent(new Event('input'));
+      input.focus();
+    });
+
+    qrUpload?.addEventListener('click', () => {
+      if (qrFile instanceof HTMLInputElement) qrFile.click();
+    });
+
+    qrFile?.addEventListener('change', () => {
+      if (qrFile instanceof HTMLInputElement) void handleQrFiles(qrFile.files);
+    });
+
+    const setDropActive = (active: boolean) => {
+      dropZone?.classList.toggle('is-dragover', active);
+      if (dropHint instanceof HTMLElement) dropHint.hidden = !active;
+    };
+
+    dropZone?.addEventListener('dragenter', (event) => {
+      event.preventDefault();
+      setDropActive(true);
+    });
+    dropZone?.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      setDropActive(true);
+    });
+    dropZone?.addEventListener('dragleave', (event) => {
+      if (event.target === dropZone) setDropActive(false);
+    });
+    dropZone?.addEventListener('drop', (event) => {
+      event.preventDefault();
+      setDropActive(false);
+      const dt = (event as DragEvent).dataTransfer;
+      void handleQrFiles(dt?.files ?? null);
+    });
+
+    input?.addEventListener('input', syncLineCount);
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      await runGenerate();
     });
 
     copyAll?.addEventListener('click', () => {
@@ -397,6 +525,30 @@ import { GITHUB_REPO_URL } from '~/navigation';
     color: var(--error);
   }
 
+  .input-shell {
+    position: relative;
+  }
+
+  .input-shell.is-dragover textarea {
+    border-color: var(--action);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--action) 14%, transparent);
+    background: color-mix(in srgb, var(--action) 4%, var(--input-bg));
+  }
+
+  .drop-hint {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    border-radius: 0.75rem;
+    color: var(--action);
+    background: color-mix(in srgb, var(--action) 8%, transparent);
+    font-size: 0.9rem;
+    font-weight: 650;
+    pointer-events: none;
+  }
+
   textarea {
     display: block;
     width: 100%;
@@ -473,6 +625,19 @@ import { GITHUB_REPO_URL } from '~/navigation';
     flex: 0 0 auto;
     padding: 0;
     font-size: 0.78rem;
+  }
+
+  .help-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem 1rem;
+  }
+
+  .text-button:disabled {
+    opacity: 0.55;
+    cursor: wait;
   }
 
   .input-errors {
