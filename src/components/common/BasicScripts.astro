@@ -8,6 +8,29 @@ import { UI } from 'astrowind:config';
 
     const header = document.getElementById('header');
     const themeButton = document.querySelector('[data-aw-toggle-color-scheme]');
+    const menuButton = document.querySelector('[data-aw-toggle-menu]');
+    const mobileNav = document.querySelector('[data-mobile-nav]');
+
+    function setMenuOpen(isOpen) {
+      menuButton?.classList.toggle('expanded', isOpen);
+      menuButton?.setAttribute('aria-expanded', String(isOpen));
+      document.body.classList.toggle('overflow-hidden', isOpen);
+      header?.classList.toggle('expanded', isOpen);
+      mobileNav?.classList.toggle('hidden', !isOpen);
+    }
+
+    menuButton?.addEventListener('click', () => {
+      const open = menuButton.getAttribute('aria-expanded') !== 'true';
+      setMenuOpen(open);
+    });
+
+    mobileNav?.addEventListener('click', (event) => {
+      if (event.target.closest('a')) setMenuOpen(false);
+    });
+
+    window.matchMedia('(min-width: 1024px)').addEventListener('change', (event) => {
+      if (event.matches) setMenuOpen(false);
+    });
 
     const isDark = document.documentElement.classList.contains('dark');
     themeButton?.setAttribute('aria-pressed', String(isDark));

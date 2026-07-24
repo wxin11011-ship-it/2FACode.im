@@ -7,9 +7,27 @@ import { getPermalink } from './utils/permalinks';
 /** Public source repository (open-source signal in the header). */
 export const GITHUB_REPO_URL = 'https://github.com/wxin11011-ship-it/2FACode.im';
 
+export const TOOL_LINKS = [
+  {
+    text: '2FA Code Generator',
+    href: getPermalink('/'),
+    description: 'Paste secrets or upload a setup QR. Get live TOTP codes in the browser.',
+  },
+  {
+    text: '2FA QR Code Generator',
+    href: getPermalink('/2fa-qr-code-generator'),
+    description: 'Turn a Base32 secret into a scannable authenticator QR code.',
+  },
+] as const;
+
 export const headerData = {
-  // Tool site: keep the top bar free of section links; open source + feedback live as icons.
-  links: [] as Array<{ text?: string; href?: string }>,
+  links: [
+    {
+      text: 'Tools',
+      href: getPermalink('/tools'),
+      links: TOOL_LINKS.map(({ text, href }) => ({ text, href })),
+    },
+  ],
   actions: [] as Array<{ text: string; href: string; variant?: 'primary' | 'secondary' | 'tertiary' | 'link' }>,
   githubUrl: GITHUB_REPO_URL,
   showFeedback: true,
@@ -18,6 +36,7 @@ export const headerData = {
 export const footerData = {
   links: [],
   secondaryLinks: [
+    { text: 'Tools', href: getPermalink('/tools') },
     { text: '2FA codes', href: getPermalink('/') },
     { text: '2FA QR', href: getPermalink('/2fa-qr-code-generator') },
     { text: 'About', href: getPermalink('/about') },

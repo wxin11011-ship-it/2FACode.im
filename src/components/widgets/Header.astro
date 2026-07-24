@@ -2,6 +2,7 @@
 import { Icon } from 'astro-icon/components';
 import Logo from '~/components/Logo.astro';
 import ToggleTheme from '~/components/common/ToggleTheme.astro';
+import ToggleMenu from '~/components/common/ToggleMenu.astro';
 import Button from '~/components/ui/Button.astro';
 
 import { getHomePermalink } from '~/utils/permalinks';
@@ -44,7 +45,6 @@ const {
   showRssFeed = false,
   showFeedback = true,
   githubUrl = '',
-  position = 'left',
 } = Astro.props;
 
 const hasNavLinks = links.some((link) => Boolean(link.text));
@@ -63,52 +63,81 @@ const iconButtonClass =
   <div class="absolute inset-0"></div>
   <div
     class:list={[
-      'relative text-default py-2 px-4 sm:px-6 mx-auto w-full flex items-center justify-between gap-3',
-      {
-        'max-w-5xl': !isFullWidth,
-      },
+      'relative text-default py-2 px-4 sm:px-6 mx-auto w-full flex items-center gap-3',
+      { 'max-w-5xl': !isFullWidth },
     ]}
   >
-    <div class="flex items-center min-w-0">
+    <div class="flex items-center min-w-0 shrink-0">
       <a class="flex items-center" href={getHomePermalink()}>
         <Logo />
       </a>
     </div>
 
     {
-      hasNavLinks ? (
+      hasNavLinks && (
         <nav
           id="site-navigation"
-          class="hidden items-center text-default lg:flex"
+          class="hidden lg:flex items-center flex-1 min-w-0 text-default"
           aria-label="Main navigation"
         >
-          <ul class="flex flex-row items-center text-[0.9375rem] tracking-[0.01rem] font-medium">
-            {links.map(({ text, href }) =>
-              text && href ? (
+          <ul class="flex flex-row items-center gap-0.5">
+            {links.map((menuLink) => {
+              const text = menuLink.text;
+              const href = menuLink.href;
+              const childLinks = menuLink.links || [];
+              if (!text) return null;
+
+              if (childLinks.length > 0) {
+                return (
+                  <li class="dropdown relative">
+                    <a
+                      href={href || '/tools'}
+                      class="hover:text-link dark:hover:text-white px-3 py-2 flex items-center gap-1 whitespace-nowrap text-[0.9375rem] font-medium"
+                      aria-haspopup="true"
+                    >
+                      {text}
+                      <Icon name="tabler:chevron-down" class="w-3.5 h-3.5 opacity-70" />
+                    </a>
+                    <ul class="dropdown-menu hidden absolute left-0 top-full z-50 mt-1 min-w-[15rem] rounded-xl border border-gray-200/80 bg-white/95 py-1.5 shadow-lg backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/95">
+                      {childLinks.map((child) =>
+                        child.text && child.href ? (
+                          <li>
+                            <a
+                              class="block px-3.5 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-800"
+                              href={child.href}
+                            >
+                              {child.text}
+                            </a>
+                          </li>
+                        ) : null
+                      )}
+                    </ul>
+                  </li>
+                );
+              }
+
+              if (!href) return null;
+              return (
                 <li>
                   <a
-                    class="hover:text-link dark:hover:text-white px-3 py-2 flex items-center whitespace-nowrap"
+                    class="hover:text-link dark:hover:text-white px-3 py-2 flex items-center whitespace-nowrap text-[0.9375rem] font-medium"
                     href={href}
                   >
                     {text}
                   </a>
                 </li>
-              ) : null
-            )}
+              );
+            })}
           </ul>
         </nav>
-      ) : null
+      )
     }
 
-    <div
-      class:list={[
-        'flex items-center gap-0.5 sm:gap-1 shrink-0',
-        { 'ml-auto': position === 'left' || !hasNavLinks },
-      ]}
-      data-header-actions
-    >
+    {!hasNavLinks && <div class="flex-1" />}
+
+    <div class="flex items-center gap-0.5 sm:gap-1 shrink-0 ml-auto" data-header-actions>
       {
-        githubUrl ? (
+        githubUrl && (
           <a
             class={iconButtonClass}
             href={githubUrl}
@@ -119,11 +148,11 @@ const iconButtonClass =
           >
             <Icon name="tabler:brand-github" class="w-5 h-5" />
           </a>
-        ) : null
+        )
       }
 
       {
-        showFeedback ? (
+        showFeedback && (
           <button
             type="button"
             data-feedback-trigger
@@ -133,28 +162,89 @@ const iconButtonClass =
           >
             <Icon name="tabler:message-circle" class="w-5 h-5" />
           </button>
-        ) : null
+        )
       }
 
       {showToggleTheme && <ToggleTheme iconClass="w-5 h-5" class={iconButtonClass} />}
 
       {
-        showRssFeed ? (
+        showRssFeed && (
           <a class={iconButtonClass} aria-label="RSS Feed" href={getAsset('/rss.xml')}>
             <Icon name="tabler:rss" class="w-5 h-5" />
           </a>
-        ) : null
+        )
       }
 
       {
-        actions?.length ? (
+        actions?.length > 0 && (
           <span class="ml-1 hidden sm:inline-flex">
             {actions.map((btnProps) => (
               <Button {...btnProps} class="ml-1 py-2 px-4 font-semibold shadow-none text-sm w-auto" />
             ))}
           </span>
-        ) : null
+        )
+      }
+
+      {
+        hasNavLinks && (
+          <div class="lg:hidden">
+            <ToggleMenu
+              label="Open tools menu"
+              class="flex flex-col h-10 w-10 rounded-lg justify-center items-center cursor-pointer group"
+            />
+          </div>
+        )
       }
     </div>
   </div>
+
+  {
+    hasNavLinks && (
+      <nav
+        id="site-navigation-mobile"
+        class="mobile-nav hidden lg:hidden border-t border-gray-200/70 dark:border-gray-800 px-4 sm:px-6 pb-3 pt-1"
+        aria-label="Mobile navigation"
+        data-mobile-nav
+      >
+        <ul class="flex flex-col py-1">
+          {links.map((menuLink) => {
+            const text = menuLink.text;
+            const href = menuLink.href;
+            const childLinks = menuLink.links || [];
+            if (!text) return null;
+            return (
+              <li class="border-b border-gray-100 dark:border-gray-800 last:border-0">
+                {href ? (
+                  <a class="block py-2.5 text-base font-semibold" href={href}>
+                    {text}
+                  </a>
+                ) : (
+                  <span class="block py-2.5 text-base font-semibold">{text}</span>
+                )}
+                {childLinks.length > 0 && (
+                  <ul class="pb-2 pl-3 flex flex-col gap-0.5">
+                    {childLinks.map((child) =>
+                      child.text && child.href ? (
+                        <li>
+                          <a class="block py-2 text-sm text-gray-600 dark:text-gray-300" href={child.href}>
+                            {child.text}
+                          </a>
+                        </li>
+                      ) : null
+                    )}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    )
+  }
 </header>
+
+<style>
+  .mobile-nav {
+    background: color-mix(in srgb, var(--canvas, #f5f5f7) 94%, transparent);
+  }
+</style>
