@@ -151,8 +151,8 @@ const iconButtonClass =
             href={githubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="View open-source code on GitHub"
-            title="Open source on GitHub"
+            aria-label="View source-available code on GitHub"
+            title="View source on GitHub"
           >
             <Icon name="tabler:brand-github" class="w-5 h-5" />
           </a>
@@ -253,6 +253,14 @@ const iconButtonClass =
 
 <style>
   .mobile-nav {
-    background: color-mix(in srgb, var(--canvas, #f5f5f7) 94%, transparent);
+    max-height: calc(100vh - 3.5rem);
+    overflow-y: auto;
+    background: var(--canvas, #f5f5f7);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
+  }
+
+  :global(#header.expanded) .mobile-nav {
+    bottom: auto !important;
+    padding: 0.25rem 1rem 0.75rem;
   }
 </style>

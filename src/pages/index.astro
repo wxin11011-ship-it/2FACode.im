@@ -158,8 +158,8 @@ const schema = [
       <TwoFactorTool />
 
       <p class="hero-footnote">
-        For standard TOTP only—not SMS codes, account recovery, or bypassing two-factor authentication.
-        Need a scannable setup image?
+        For standard TOTP only—not SMS codes, account recovery, or bypassing two-factor authentication. Need a scannable
+        setup image?
         <a href="/2fa-qr-code-generator">2FA QR code generator</a>.
       </p>
     </section>
@@ -257,8 +257,8 @@ const schema = [
         <p>
           The 2FA code generator is delivered as a static page. Code generation happens inside the tab; the tool does
           not call a generation API or write authentication data to browser storage. Optional page analytics may load
-          for traffic measurement and are separate from generation. You can inspect the Network panel while generating
-          a 2FA code and reload the page to confirm that the workspace is gone.
+          for traffic measurement and are separate from generation. You can inspect the Network panel while generating a
+          2FA code and reload the page to confirm that the workspace is gone.
         </p>
         <p>
           That design removes a common risk, but it does not make a browser invulnerable. A malicious extension,
@@ -324,6 +324,11 @@ const schema = [
           </p>
         </article>
       </div>
+      <p class="related-note">
+        Need a precise check? Use the <a href="/totp-verifier">TOTP verifier</a>, or follow the
+        <a href="/guides/2fa-code-not-working">2FA code not working guide</a>. Creating a new application enrollment?
+        Open the <a href="/totp-secret-key-generator">TOTP secret key generator</a>.
+      </p>
     </section>
 
     <section id="faq" class="content-section faq-section" aria-labelledby="faq-title">

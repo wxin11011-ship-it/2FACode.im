@@ -18,12 +18,16 @@ const { items, currentLabel = '', class: className = '' } = Astro.props;
 
 const friendlyLabels: Record<string, string> = {
   tools: 'Tools',
+  guides: 'Guides',
   about: 'About',
   security: 'Security',
   privacy: 'Privacy',
   terms: 'Terms',
   disclaimer: 'Disclaimer',
   '2fa-qr-code-generator': '2FA QR Code Generator',
+  'totp-verifier': 'TOTP Verifier',
+  'totp-secret-key-generator': 'TOTP Secret Key Generator',
+  '2fa-code-not-working': '2FA Code Not Working',
 };
 
 const toTitle = (segment: string) =>
@@ -36,9 +40,7 @@ let crumbs: CrumbItem[] = [];
 if (items?.length) {
   crumbs = items;
 } else {
-  const pathSegments = trimSlash(new URL(Astro.url).pathname)
-    .split('/')
-    .filter(Boolean);
+  const pathSegments = trimSlash(new URL(Astro.url).pathname).split('/').filter(Boolean);
 
   crumbs = pathSegments.map((segment, index) => {
     const href = getPermalink(`/${pathSegments.slice(0, index + 1).join('/')}`);

@@ -14,7 +14,9 @@ export default defineConfig({
   output: 'static',
 
   integrations: [
-    sitemap(),
+    sitemap({
+      filter: (page) => new URL(page).pathname.replace(/\/$/, '') !== '/guides',
+    }),
     icon({
       include: {
         tabler: ['*'],

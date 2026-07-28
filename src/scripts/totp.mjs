@@ -10,6 +10,7 @@ export const MAX_INPUT_LENGTH = MAX_ENTRIES * (MAX_LINE_LENGTH + 1);
 
 const MIN_SECRET_BYTES = 16;
 const MAX_SECRET_BYTES = 64;
+export const DEFAULT_SECRET_BYTES = 20;
 
 const supportedAlgorithms = new Set(['sha1', 'sha256', 'sha512']);
 const supportedDigits = new Set([6, 7, 8]);
@@ -223,4 +224,42 @@ export async function generateTotp(entry, epoch = Date.now() / 1000, cryptoPlugi
   } catch {
     throw new Error('A code could not be generated for this entry.');
   }
+}
+
+export function generateRandomSecret(byteLength = DEFAULT_SECRET_BYTES, cryptoSource = globalThis.crypto) {
+  if (!Number.isInteger(byteLength) || byteLength < DEFAULT_SECRET_BYTES || byteLength > MAX_SECRET_BYTES) {
+    throw new TotpInputError(`Generate a secret between ${DEFAULT_SECRET_BYTES} and ${MAX_SECRET_BYTES} bytes.`);
+  }
+  if (!cryptoSource || typeof cryptoSource.getRandomValues !== 'function') {
+    throw new Error('Secure random generation is unavailable in this browser.');
+  }
+
+  const bytes = new Uint8Array(byteLength);
+  cryptoSource.getRandomValues(bytes);
+  return base32.encode(bytes).replace(/=+$/g, '');
+}
+
+export async function verifyTotp(
+  entry,
+  candidate,
+  { epoch = Date.now() / 1000, window = 1, cryptoPlugin = getCryptoPlugin() } = {}
+) {
+  const token = String(candidate ?? '').replace(/[\s-]+/g, '');
+  if (!new RegExp(`^\\d{${entry.digits}}$`).test(token)) {
+    throw new TotpInputError(`Enter exactly ${entry.digits} digits for this TOTP setup.`);
+  }
+  if (!Number.isInteger(window) || window < 0 || window > 2) {
+    throw new TotpInputError('The verification window must be between 0 and 2 time steps.');
+  }
+
+  for (let delta = -window; delta <= window; delta += 1) {
+    const expected = await generateTotp(entry, epoch + delta * entry.period, cryptoPlugin);
+    let mismatch = expected.length ^ token.length;
+    for (let index = 0; index < Math.max(expected.length, token.length); index += 1) {
+      mismatch |= (expected.charCodeAt(index) || 0) ^ (token.charCodeAt(index) || 0);
+    }
+    if (mismatch === 0) return { valid: true, delta };
+  }
+
+  return { valid: false, delta: null };
 }

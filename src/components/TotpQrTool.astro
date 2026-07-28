@@ -205,7 +205,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
       }
       setErrors('');
       showResults(false);
-      secretInput instanceof HTMLTextAreaElement && secretInput.focus();
+      if (secretInput instanceof HTMLTextAreaElement) secretInput.focus();
     };
 
     const copyText = async (value: string, button: Element | null) => {
@@ -276,12 +276,8 @@ import { GITHUB_REPO_URL } from '~/navigation';
         lastUri = uri;
         if (uriOut instanceof HTMLTextAreaElement) uriOut.value = uri;
         if (labelDisplay instanceof HTMLElement) {
-          const pretty = fields.issuer
-            ? `${fields.issuer} · ${fields.label || 'Account'}`
-            : fields.label || 'Account';
-          labelDisplay.textContent = fields.fromUri
-            ? `From otpauth URI · ${fields.label}`
-            : pretty;
+          const pretty = fields.issuer ? `${fields.issuer} · ${fields.label || 'Account'}` : fields.label || 'Account';
+          labelDisplay.textContent = fields.fromUri ? `From otpauth URI · ${fields.label}` : pretty;
         }
 
         // Sync form when user pasted a full URI
@@ -320,7 +316,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
         // RFC test vector Base32 for "12345678901234567890" style demos used elsewhere
         secretInput.value = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
       }
-      secretInput instanceof HTMLTextAreaElement && secretInput.focus();
+      if (secretInput instanceof HTMLTextAreaElement) secretInput.focus();
     });
 
     form?.addEventListener('submit', (event) => {

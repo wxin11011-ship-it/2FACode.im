@@ -1,0 +1,163 @@
+---
+import { GITHUB_REPO_URL } from '~/navigation';
+---
+
+<section id="verifier" class="tool-shell" aria-labelledby="verifier-tool-title" data-verifier-tool>
+  <div class="tool-shell-header">
+    <h2 id="verifier-tool-title">Check a candidate code</h2>
+    <p class="browser-badge">Browser only</p>
+  </div>
+  <form class="tool-form" data-verifier-form novalidate>
+    <div class="tool-field">
+      <label for="verifier-secret" class="field-label">Secret key or otpauth URI <span>not stored</span></label>
+      <textarea
+        id="verifier-secret"
+        data-verifier-secret
+        rows="3"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+        placeholder="Paste a Base32 secret or otpauth://totp/… URI"></textarea>
+    </div>
+    <div class="tool-field">
+      <label for="verifier-code" class="field-label">TOTP code <span>6–8 digits</span></label>
+      <input
+        id="verifier-code"
+        data-verifier-code
+        type="text"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="10"
+        placeholder="123 456"
+      />
+    </div>
+    <details class="tool-options">
+      <summary>Advanced settings for a plain Base32 secret</summary>
+      <div class="option-grid">
+        <div class="tool-field">
+          <label for="verifier-algorithm">Algorithm</label><select id="verifier-algorithm" data-verifier-algorithm
+            ><option value="sha1">SHA-1</option><option value="sha256">SHA-256</option><option value="sha512"
+              >SHA-512</option
+            ></select
+          >
+        </div>
+        <div class="tool-field">
+          <label for="verifier-digits">Digits</label><select id="verifier-digits" data-verifier-digits
+            ><option value="6">6</option><option value="7">7</option><option value="8">8</option></select
+          >
+        </div>
+        <div class="tool-field">
+          <label for="verifier-period">Period</label><select id="verifier-period" data-verifier-period
+            ><option value="30">30 seconds</option><option value="15">15 seconds</option><option value="60"
+              >60 seconds</option
+            ><option value="90">90 seconds</option><option value="120">120 seconds</option></select
+          >
+        </div>
+      </div>
+    </details>
+    <p class="tool-error" data-verifier-error role="alert" aria-live="polite" hidden></p>
+    <div class="tool-actions">
+      <div class="button-row">
+        <button type="submit" class="primary-action">Verify TOTP code</button>
+        <button type="button" class="secondary-action" data-verifier-demo>Try a valid demo</button>
+        <button type="button" class="secondary-action" data-verifier-clear>Clear</button>
+      </div>
+      <p class="trust-note">
+        ±1 time window · <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">View source</a>
+      </p>
+    </div>
+  </form>
+  <div class="tool-result" data-verifier-result hidden aria-live="polite">
+    <div class="result-state">
+      <span class="result-icon" data-verifier-icon aria-hidden="true">✓</span>
+      <div><h3 data-verifier-heading>Valid TOTP code</h3><p data-verifier-message></p></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { generateTotp, parseLine, verifyTotp } from '~/scripts/totp.mjs';
+
+  const tool = document.querySelector('[data-verifier-tool]');
+  if (tool instanceof HTMLElement && tool.dataset.ready !== 'true') {
+    tool.dataset.ready = 'true';
+    const form = tool.querySelector('[data-verifier-form]');
+    const secretInput = tool.querySelector('[data-verifier-secret]');
+    const codeInput = tool.querySelector('[data-verifier-code]');
+    const algorithm = tool.querySelector('[data-verifier-algorithm]');
+    const digits = tool.querySelector('[data-verifier-digits]');
+    const period = tool.querySelector('[data-verifier-period]');
+    const error = tool.querySelector('[data-verifier-error]');
+    const result = tool.querySelector('[data-verifier-result]');
+    const icon = tool.querySelector('[data-verifier-icon]');
+    const heading = tool.querySelector('[data-verifier-heading]');
+    const message = tool.querySelector('[data-verifier-message]');
+
+    const setError = (value: string) => {
+      if (!(error instanceof HTMLElement)) return;
+      error.textContent = value;
+      error.hidden = !value;
+    };
+
+    const getEntry = () => {
+      const raw = secretInput instanceof HTMLTextAreaElement ? secretInput.value.trim() : '';
+      const entry = parseLine(raw, 1);
+      if (!raw.toLowerCase().startsWith('otpauth://')) {
+        entry.algorithm = algorithm instanceof HTMLSelectElement ? algorithm.value : 'sha1';
+        entry.digits = digits instanceof HTMLSelectElement ? Number(digits.value) : 6;
+        entry.period = period instanceof HTMLSelectElement ? Number(period.value) : 30;
+      }
+      return entry;
+    };
+
+    const showResult = (valid: boolean, delta: number | null) => {
+      if (result instanceof HTMLElement) result.hidden = false;
+      if (icon instanceof HTMLElement) {
+        icon.textContent = valid ? '✓' : '×';
+        icon.classList.toggle('invalid', !valid);
+      }
+      if (heading instanceof HTMLElement) heading.textContent = valid ? 'Valid TOTP code' : 'Invalid TOTP code';
+      if (message instanceof HTMLElement) {
+        message.textContent = valid
+          ? delta === 0
+            ? 'The code matches the current time window.'
+            : `The code matches the ${delta === -1 ? 'previous' : 'next'} time window. Check clock sync if this happens often.`
+          : 'No match was found in the current, previous, or next time window. Check the secret, clock, and TOTP settings.';
+      }
+    };
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      setError('');
+      if (result instanceof HTMLElement) result.hidden = true;
+      try {
+        const entry = getEntry();
+        const candidate = codeInput instanceof HTMLInputElement ? codeInput.value : '';
+        const verdict = await verifyTotp(entry, candidate, { window: 1 });
+        showResult(verdict.valid, verdict.delta);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'The code could not be checked.');
+      }
+    });
+
+    tool.querySelector('[data-verifier-demo]')?.addEventListener('click', async () => {
+      const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
+      if (secretInput instanceof HTMLTextAreaElement) secretInput.value = secret;
+      if (algorithm instanceof HTMLSelectElement) algorithm.value = 'sha1';
+      if (digits instanceof HTMLSelectElement) digits.value = '6';
+      if (period instanceof HTMLSelectElement) period.value = '30';
+      const token = await generateTotp(parseLine(secret, 1));
+      if (codeInput instanceof HTMLInputElement) codeInput.value = token;
+      setError('');
+      if (result instanceof HTMLElement) result.hidden = true;
+      if (codeInput instanceof HTMLInputElement) codeInput.focus();
+    });
+
+    tool.querySelector('[data-verifier-clear]')?.addEventListener('click', () => {
+      if (form instanceof HTMLFormElement) form.reset();
+      setError('');
+      if (result instanceof HTMLElement) result.hidden = true;
+      if (secretInput instanceof HTMLTextAreaElement) secretInput.focus();
+    });
+  }
+</script>

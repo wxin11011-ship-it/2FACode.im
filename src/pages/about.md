@@ -28,7 +28,7 @@ It does not receive SMS messages, recover lost keys, bypass two-factor authentic
 
 The site is built as static files. TOTP generation uses the open-source `otplib` library with Web Crypto when available and an audited Noble implementation as a local compatibility fallback. The behavior follows RFC 6238, and automated tests include an official RFC test vector.
 
-There is no generation API. Authentication data remains in the current tab's memory until the user clears, reloads, or closes it. Optional page analytics may measure traffic; they do not calculate codes and are not a secret database.
+There is no generation API. Authentication data remains in the current tab's memory until the user clears, reloads, or closes it. Sensitive tool pages do not load third-party analytics; optional analytics are limited to non-tool content and directory pages.
 
 ## Our product principles
 

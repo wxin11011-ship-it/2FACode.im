@@ -1,0 +1,411 @@
+---
+import '~/assets/styles/seo-tool-page.css';
+
+import Breadcrumbs from '~/components/common/Breadcrumbs.astro';
+import TotpVerifierTool from '~/components/TotpVerifierTool.astro';
+import Footer from '~/components/widgets/Footer.astro';
+import Header from '~/components/widgets/Header.astro';
+import Layout from '~/layouts/Layout.astro';
+import { footerData, headerData } from '~/navigation';
+
+const metadata = {
+  title: 'TOTP Verifier Online — Test a Code Privately',
+  description:
+    'Use this TOTP verifier online to test a 6–8 digit code against a Base32 secret or otpauth URI locally. Check current and nearby time windows.',
+  ignoreTitleTemplate: true,
+  canonical: 'https://2facode.im/totp-verifier',
+  openGraph: {
+    title: 'TOTP Verifier Online — Test a Code Privately',
+    description:
+      'Test a TOTP code against a Base32 secret or otpauth URI in your browser. Nothing is uploaded or stored.',
+    type: 'website',
+    siteName: '2FACode.im',
+    images: [
+      {
+        url: 'https://2facode.im/images/2facode-og.png',
+        width: 1200,
+        height: 630,
+        alt: '2FACode.im TOTP verifier online',
+      },
+    ],
+  },
+};
+
+const faqs = [
+  {
+    question: 'What is a TOTP verifier?',
+    answer:
+      'A TOTP verifier checks whether a numeric TOTP code matches a shared secret for a specific time window. This page calculates the expected code locally, compares it with the code you entered, and reports only Valid or Invalid. It does not contact the account provider or confirm ownership of an online account.',
+  },
+  {
+    question: 'How do I test a TOTP code online?',
+    answer:
+      'Paste the Base32 secret or full otpauth URI, enter the 6–8 digit TOTP code, and select Verify TOTP code. The TOTP verifier tests the current time window and one neighboring window on either side. Use only secrets from accounts or test systems you are authorized to inspect.',
+  },
+  {
+    question: 'Why did my TOTP code fail to verify?',
+    answer:
+      'A failed TOTP code usually means the clock, secret, algorithm, digit count, or period does not match. Enable automatic time, wait for a new TOTP code, and retry with the full otpauth URI when possible. If the secret was replaced during account setup, an old copy can no longer create a valid code.',
+  },
+  {
+    question: 'Does this TOTP validator send my secret to a server?',
+    answer:
+      'No. The TOTP validator runs the calculation inside this browser tab and does not call a verification API or store the secret. Page analytics may measure a visit, but the TOTP code and secret are not submitted as analytics fields. A compromised device or extension can still read page inputs, so use a trusted environment.',
+  },
+  {
+    question: 'What does the ±1 time-window check mean?',
+    answer:
+      'It means the TOTP verifier checks the current interval plus the immediately previous and next intervals. With a 30-second period, that tolerates a small clock difference or a code entered just as it rotates. A real service may use a narrower or wider policy, so this result does not guarantee that service will accept the code.',
+  },
+  {
+    question: 'Can I verify 6-digit and 8-digit TOTP codes?',
+    answer:
+      'Yes. Plain Base32 input can be checked with 6, 7, or 8 digits, and a full otpauth URI supplies its own digit setting. The entered TOTP code must have exactly the configured length. Six digits is the common default; change it only when the issuer documents another value.',
+  },
+  {
+    question: 'Does the verifier support SHA-256 and SHA-512?',
+    answer:
+      'Yes. The TOTP verifier supports SHA-1, SHA-256, and SHA-512, along with periods from 15 to 120 seconds. SHA-1, six digits, and 30 seconds remain the most interoperable defaults. Both the authenticator and verifier must use identical settings or every TOTP code will differ.',
+  },
+  {
+    question: 'Is a valid result proof that an account login will work?',
+    answer:
+      'No. Valid only proves that the candidate TOTP code matches the supplied secret and time settings within this page’s window. A provider can reject reused codes, apply a different window, disable the account, replace the secret, or require another factor. Use the provider’s own login or recovery flow for the final decision.',
+  },
+  {
+    question: 'Can this verifier recover a missing 2FA secret?',
+    answer:
+      'No. A TOTP code cannot be reversed into the long-lived shared secret, and this tool cannot retrieve a secret from an account provider. If the original key is missing, use saved backup codes, an enrolled authenticator, or the provider’s official recovery process. Do not submit random codes or third-party account details here.',
+  },
+  {
+    question: 'What is the difference between a TOTP verifier and a TOTP generator?',
+    answer:
+      'A TOTP generator starts with a secret and produces the current rotating TOTP code. A TOTP verifier starts with both a secret and a candidate code, then answers whether they match. Use the homepage when you need a live code; use this page when testing a known code or diagnosing a configuration mismatch.',
+  },
+];
+
+const steps = [
+  {
+    name: 'Paste the shared secret',
+    text: 'Use a Base32 setup key or a full otpauth TOTP URI from a system you own or are authorized to test.',
+  },
+  {
+    name: 'Enter the candidate code',
+    text: 'Type the current 6–8 digit TOTP code and match algorithm, digits, and period when using a plain secret.',
+  },
+  {
+    name: 'Read the verification result',
+    text: 'See whether the code matches the current or neighboring time window, then act on the specific mismatch.',
+  },
+];
+
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: '2FACode.im TOTP Verifier',
+    applicationCategory: 'SecurityApplication',
+    operatingSystem: 'Any modern web browser',
+    url: 'https://2facode.im/totp-verifier',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    featureList: [
+      'Browser-only TOTP verification',
+      'Base32 and otpauth URI input',
+      'SHA-1, SHA-256, and SHA-512',
+      '6–8 digit codes',
+      'Current and neighboring time-window checks',
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: 'How to verify a TOTP code online',
+    step: steps.map((step, index) => ({
+      '@type': 'HowToStep',
+      position: index + 1,
+      name: step.name,
+      text: step.text,
+      url: `https://2facode.im/totp-verifier#step-${index + 1}`,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+    })),
+  },
+];
+---
+
+<Layout metadata={metadata}>
+  <a class="skip-link" href="#verifier">Skip to the TOTP verifier</a>
+  <Header {...headerData} isSticky showToggleTheme={true} />
+  <main class="seo-tool-page">
+    <div class="page-crumbs">
+      <Breadcrumbs items={[{ label: 'Tools', href: '/tools' }, { label: 'TOTP Verifier' }]} />
+    </div>
+    <section class="seo-hero-copy" aria-labelledby="page-title">
+      <h1 id="page-title">TOTP Verifier Online</h1>
+      <p>
+        Test whether a TOTP code matches a Base32 secret or otpauth URI without sending either value to a verification
+        server.
+      </p>
+      <ul class="trust-chips" aria-label="Trust details">
+        <li>Browser-only</li><li>No secret storage</li><li>RFC 6238</li><li>±1 time window</li>
+      </ul>
+    </section>
+    <TotpVerifierTool />
+    <p class="hero-note">
+      For authorized testing and troubleshooting only. Need a current code instead? <a href="/"
+        >Open the 2FA code generator</a
+      >.
+    </p>
+
+    <section class="seo-section" aria-labelledby="features-title">
+      <p class="section-kicker">Key features</p><h2 id="features-title">A focused TOTP code checker</h2>
+      <p class="section-lead">
+        The TOTP verifier keeps one job clear: compare a candidate TOTP code with the expected value for a known secret.
+        It exposes the settings that cause real mismatches and leaves account authentication to the provider.
+      </p>
+      <div class="feature-layout">
+        <div class="feature-grid">
+          <article>
+            <h3>Base32 or URI input</h3><p>
+              Paste a manual secret or preserve issuer settings with the full otpauth URI.
+            </p>
+          </article>
+          <article>
+            <h3>6–8 digit codes</h3><p>Match common six-digit TOTP codes and supported seven- or eight-digit setups.</p>
+          </article>
+          <article>
+            <h3>Three HMAC algorithms</h3><p>
+              Test SHA-1, SHA-256, or SHA-512 without silently changing the selected value.
+            </p>
+          </article>
+          <article>
+            <h3>Visible clock tolerance</h3><p>
+              Know whether the TOTP code matched now, one step early, or one step late.
+            </p>
+          </article>
+        </div>
+        <img
+          class="content-illustration"
+          src="/images/totp-tools/verifier-local-flow.svg"
+          width="560"
+          height="340"
+          loading="lazy"
+          decoding="async"
+          alt="Local TOTP verifier comparing a secret and code before showing a valid result"
+        />
+      </div>
+    </section>
+
+    <section class="seo-section" aria-labelledby="what-title">
+      <p class="section-kicker">What it is</p><h2 id="what-title">What is a TOTP verifier?</h2>
+      <div class="definition-grid">
+        <div class="definition-copy">
+          <p>
+            A TOTP verifier is the checking side of time-based one-time password authentication. It uses the same shared
+            secret, HMAC algorithm, digit length, time period, and clock position as an authenticator. If the calculated
+            TOTP code equals the candidate code, the verifier returns a match for that time window.
+          </p>
+          <p>
+            This is different from the <a href="/">TOTP generator on the homepage</a>, which displays a live TOTP code,
+            and the <a href="/2fa-qr-code-generator">2FA QR code generator</a>, which turns an existing secret into
+            enrollment data. This TOTP validator online does not log into an account, receive SMS messages, bypass 2FA,
+            or recover a missing secret.
+          </p>
+          <p>
+            Use the <a href="/totp-secret-key-generator">TOTP secret key generator</a> only when creating a new test or application
+            enrollment. If an authenticator code keeps failing, follow the <a href="/guides/2fa-code-not-working"
+              >2FA code troubleshooting guide</a
+            > after running this test.
+          </p>
+        </div>
+        <dl class="format-list">
+          <div><dt>Secret</dt><dd>Base32 or otpauth://totp URI</dd></div><div>
+            <dt>Code</dt><dd>6, 7, or 8 numeric digits</dd>
+          </div><div><dt>Algorithm</dt><dd>SHA-1, SHA-256, SHA-512</dd></div><div>
+            <dt>Period</dt><dd>15–120 seconds</dd>
+          </div><div><dt>Window</dt><dd>Current, previous, and next step</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="seo-section" aria-labelledby="how-title">
+      <p class="section-kicker">How to</p><h2 id="how-title">How to test a TOTP code online</h2>
+      <p class="section-lead">
+        A reliable test needs the exact secret and settings used to create the candidate TOTP code. A full otpauth URI
+        is safest because it carries the algorithm, digits, and period together.
+      </p>
+      <div class="steps-grid">
+        <article id="step-1">
+          <img
+            src="/images/totp-tools/verifier-step-secret.svg"
+            width="480"
+            height="300"
+            loading="lazy"
+            decoding="async"
+            alt="Paste an authorized Base32 secret into the TOTP verifier"
+          /><div class="step-copy">
+            <span class="step-number">01</span><h3>{steps[0].name}</h3><p>{steps[0].text}</p>
+          </div>
+        </article>
+        <article id="step-2">
+          <img
+            src="/images/totp-tools/verifier-step-code.svg"
+            width="480"
+            height="300"
+            loading="lazy"
+            decoding="async"
+            alt="Enter a six-digit candidate TOTP code for testing"
+          /><div class="step-copy">
+            <span class="step-number">02</span><h3>{steps[1].name}</h3><p>{steps[1].text}</p>
+          </div>
+        </article>
+        <article id="step-3">
+          <img
+            src="/images/totp-tools/verifier-step-result.svg"
+            width="480"
+            height="300"
+            loading="lazy"
+            decoding="async"
+            alt="TOTP verifier showing a valid code match in the local browser"
+          /><div class="step-copy">
+            <span class="step-number">03</span><h3>{steps[2].name}</h3><p>{steps[2].text}</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="seo-section" aria-labelledby="why-title">
+      <p class="section-kicker">Why choose it</p><h2 id="why-title">Verification that explains the result</h2>
+      <p class="section-lead">
+        A bare “invalid” message is rarely enough. This TOTP verifier gives developers, operators, and careful users the
+        evidence needed to separate clock drift from a wrong secret or configuration.
+      </p>
+      <div class="benefit-grid">
+        <article>
+          <h3>Local by design</h3><p>The secret and TOTP code stay in page memory while the comparison runs.</p>
+        </article>
+        <article>
+          <h3>Window-aware</h3><p>
+            A neighboring match points to timing instead of pretending every result is simply current.
+          </p>
+        </article>
+        <article>
+          <h3>Parameter-transparent</h3><p>
+            Algorithm, digits, and period remain visible for reproducible TOTP code tests.
+          </p>
+        </article>
+        <article>
+          <h3>Temporary workspace</h3><p>
+            No account, saved vault, share URL, or recovery database is added to the workflow.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="seo-section" aria-labelledby="tips-title">
+      <p class="section-kicker">Pro tips</p><h2 id="tips-title">Fix a failed TOTP code verification</h2>
+      <p class="section-lead">
+        When a TOTP code verify failed message appears, change one variable at a time. Repeatedly submitting the same
+        code cannot repair an incorrect secret or an unsynchronized clock.
+      </p>
+      <div class="tip-list">
+        <article>
+          <h3>Enable automatic time first</h3><p>
+            Synchronize date, time, and time zone on both the device producing the TOTP code and the system running the
+            verifier.
+          </p>
+        </article>
+        <article>
+          <h3>Wait for a clean window</h3><p>
+            Generate or read a fresh TOTP code near the start of its period instead of typing one with only a second
+            remaining.
+          </p>
+        </article>
+        <article>
+          <h3>Prefer the complete URI</h3><p>
+            An otpauth URI prevents accidental SHA, digit, or period mismatches that occur when only the Base32 secret
+            is copied.
+          </p>
+        </article>
+        <article>
+          <h3>Check whether enrollment changed</h3><p>
+            Re-enabling 2FA usually creates a new secret. A TOTP code from the old enrollment will remain invalid
+            forever.
+          </p>
+        </article>
+      </div>
+      <p class="warning-note">
+        <strong>Limit:</strong> a valid local result does not override the provider’s replay protection, account state, or
+        recovery policy. This TOTP verifier cannot authorize access or bypass another service.
+      </p>
+    </section>
+
+    <section class="seo-section" aria-labelledby="uses-title">
+      <p class="section-kicker">Use cases</p><h2 id="uses-title">When a TOTP verifier is useful</h2>
+      <p class="section-lead">
+        Use this TOTP tester online for controlled checks where you already possess the authorized secret. Keep
+        production secrets in their normal protected store and prefer dedicated test credentials.
+      </p>
+      <div class="use-grid">
+        <article>
+          <h3>Integration development</h3><p>
+            Confirm that a backend and client agree on the same TOTP code, algorithm, period, and digit length.
+          </p>
+        </article>
+        <article>
+          <h3>QA and regression tests</h3><p>
+            Check a known test fixture before investigating UI automation or login-flow failures.
+          </p>
+        </article>
+        <article>
+          <h3>Authenticator migration</h3><p>
+            Compare a newly enrolled device with the same secret before removing the old authenticator.
+          </p>
+        </article>
+        <article>
+          <h3>Clock-drift diagnosis</h3><p>
+            Use a previous or next-window match as a signal to repair device or server time synchronization.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="seo-section" aria-labelledby="faq-title">
+      <p class="section-kicker">FAQ</p><h2 id="faq-title">TOTP verifier online FAQ</h2>
+      <p class="section-lead">
+        Direct answers about testing a TOTP code, interpreting a match, and keeping the shared secret within its proper
+        security boundary.
+      </p>
+      <div class="faq-list">
+        {
+          faqs.map((faq, index) => (
+            <details open={index === 0}>
+              <>
+                <summary>{faq.question}</summary>
+                <p>{faq.answer}</p>
+              </>
+            </details>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="seo-final" aria-labelledby="final-title">
+      <p class="section-kicker">Run the check</p><h2 id="final-title">
+        Verify the TOTP code, then clear the workspace
+      </h2><p>
+        Use the exact secret and settings, interpret the time-window result, and remove sensitive inputs as soon as the
+        test is complete.
+      </p><a href="#verifier">Open the TOTP verifier</a>
+    </section>
+  </main>
+  <Footer {...footerData} />
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
+</Layout>

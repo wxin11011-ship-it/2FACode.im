@@ -1,0 +1,225 @@
+---
+import '~/assets/styles/seo-tool-page.css';
+
+import Breadcrumbs from '~/components/common/Breadcrumbs.astro';
+import Footer from '~/components/widgets/Footer.astro';
+import Header from '~/components/widgets/Header.astro';
+import Layout from '~/layouts/Layout.astro';
+import { footerData, headerData } from '~/navigation';
+
+const metadata = {
+  title: '2FA Code Not Working? Fix TOTP Authenticator Codes',
+  description:
+    'If your 2FA code is not working, check clock sync, secret, algorithm, digits, and period in order. Diagnose TOTP failures without bypass claims.',
+  ignoreTitleTemplate: true,
+  canonical: 'https://2facode.im/guides/2fa-code-not-working',
+};
+
+const faqs = [
+  {
+    question: 'Why is my 2FA code invalid even when I typed it correctly?',
+    answer:
+      'The code can be typed correctly but still come from the wrong time window, secret, or TOTP configuration. Enable automatic time, wait for a new code, and confirm the account label. If possible, compare the full otpauth URI rather than guessing the algorithm, digit count, or period.',
+  },
+  {
+    question: 'How do I sync time for an authenticator code?',
+    answer:
+      'Set date, time, and time zone to automatic on the phone and computer, then reconnect so the operating system can update its clock. Restart the authenticator if needed and try a newly generated code. A manual clock that looks close can still cross a TOTP window at the wrong moment.',
+  },
+  {
+    question: 'Why did 2FA stop working after I got a new phone?',
+    answer:
+      'The new phone may not contain the same secret, or an export/import process may have skipped the account. Re-scan the provider’s current enrollment QR or use the authenticator’s supported transfer feature. Do not delete the old enrollment until a code from the new phone succeeds.',
+  },
+  {
+    question: 'Can an old 2FA secret still work after I reset authenticator setup?',
+    answer:
+      'Usually no. Resetting or re-enabling authenticator-based 2FA normally creates a new shared secret and invalidates codes from the previous one. Update every authorized authenticator and protected server copy to the new enrollment, then remove obsolete QR images and backups.',
+  },
+  {
+    question: 'What if the provider uses an 8-digit code?',
+    answer:
+      'Use the exact digit count specified by the provider or encoded in its otpauth URI. A six-digit calculation cannot match an eight-digit setup even with the same secret and time. Algorithm and period must also match, so preserve the full enrollment URI whenever possible.',
+  },
+  {
+    question: 'Does this guide fix SMS verification codes?',
+    answer:
+      'No. This guide covers authenticator-app TOTP codes created from a shared secret. Missing SMS messages involve carrier delivery, phone numbers, spam filtering, roaming, or provider infrastructure. Use the account provider and mobile carrier’s official troubleshooting steps for SMS failures.',
+  },
+  {
+    question: 'Can I recover a lost secret from one TOTP code?',
+    answer:
+      'No. A short TOTP code does not contain enough information to reconstruct the long-lived secret. Use an enrolled device, saved backup codes, an approved secret backup, or the provider’s recovery process. Services claiming to derive a secret from one code are not offering a legitimate recovery method.',
+  },
+  {
+    question: 'When should I contact the account provider?',
+    answer:
+      'Contact the provider when the secret is unavailable, the account was reconfigured, backup codes fail, access is locked, or a correct local TOTP test is still rejected. Only the provider can inspect account state, replay protection, recovery eligibility, and service-specific policies.',
+  },
+];
+
+const schema = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: '2FA Code Not Working? Fix TOTP Authenticator Codes',
+    description: metadata.description,
+    mainEntityOfPage: 'https://2facode.im/guides/2fa-code-not-working',
+    author: { '@type': 'Organization', name: '2FACode.im', url: 'https://2facode.im/about' },
+    publisher: { '@type': 'Organization', name: '2FACode.im', url: 'https://2facode.im/' },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((faq) => ({
+      '@type': 'Question',
+      name: faq.question,
+      acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+    })),
+  },
+];
+---
+
+<Layout metadata={metadata} enableThirdPartyAnalytics>
+  <Header {...headerData} isSticky showToggleTheme={true} />
+  <main class="seo-tool-page">
+    <div class="page-crumbs">
+      <Breadcrumbs items={[{ label: 'Guides', href: '/guides' }, { label: '2FA Code Not Working' }]} />
+    </div>
+    <article>
+      <header class="seo-hero-copy">
+        <h1>2FA Code Not Working? Fix TOTP Codes</h1><p>
+          This 2FA code not working guide covers the TOTP causes a user can check safely. A rejected authenticator code
+          usually comes from time, secret, or configuration mismatch; check them in that order before using account
+          recovery.
+        </p><ul class="trust-chips">
+          <li>TOTP-specific</li><li>No bypass advice</li><li>Clock-first checklist</li><li>Provider boundary</li>
+        </ul>
+      </header>
+
+      <section class="seo-section" aria-labelledby="quick-title">
+        <p class="section-kicker">Quick answer</p><h2 id="quick-title">What to do when a 2FA code is not working</h2><p
+          class="section-lead"
+        >
+          Treat a “2FA code not working” message as a configuration check, not a reason to guess codes. First enable
+          automatic date, time, and time zone on the device creating the code. Wait for a fresh code, confirm it belongs
+          to the exact account, and try again near the start of the 30-second window. If it still fails, verify the
+          shared secret and its algorithm, digit count, and period. When the original secret is missing or the account
+          has been reset, stop testing and use the provider’s official recovery flow.
+        </p>
+      </section>
+
+      <section class="seo-section" aria-labelledby="checks-title">
+        <p class="section-kicker">Five checks</p><h2 id="checks-title">
+          Diagnose an invalid authenticator code in order
+        </h2><p class="section-lead">
+          Work through this 2FA code not working checklist in order so each test isolates one cause.
+        </p><div class="tip-list">
+          <article>
+            <h3>1. Synchronize the clock</h3><p>
+              TOTP divides Unix time into fixed windows. A phone or computer can show a plausible local time while still
+              being far enough off to calculate a different code. Enable network-provided time and the correct automatic
+              time zone on both the authenticator device and any system used for comparison.
+            </p>
+          </article>
+          <article>
+            <h3>2. Use a newly rotated code</h3><p>
+              A code entered as its timer reaches zero may expire before the provider evaluates it. Wait for the next
+              code and submit it promptly. Do not keep retrying an older value; most providers also reject reuse after a
+              successful verification.
+            </p>
+          </article>
+          <article>
+            <h3>3. Confirm the exact account and secret</h3><p>
+              Similar labels can hide that the authenticator is showing a code for another account, environment, or
+              issuer. A single changed Base32 character produces an unrelated sequence. If 2FA was recently disabled and
+              enabled again, the old secret is almost certainly obsolete.
+            </p>
+          </article>
+          <article>
+            <h3>4. Match every TOTP parameter</h3><p>
+              The common defaults are SHA-1, six digits, and 30 seconds, but not every system uses them. A full otpauth
+              URI records algorithm, digits, and period. Preserve that URI during authorized testing instead of guessing
+              settings from the visible code alone.
+            </p>
+          </article>
+          <article>
+            <h3>5. Respect the provider boundary</h3><p>
+              A local tool can prove that a secret and code match mathematically. It cannot see whether the provider has
+              disabled the enrollment, rejected a reused code, locked the account, or requires another factor. Use
+              backup codes or provider support when local checks pass but login still fails.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="seo-section" aria-labelledby="tools-title">
+        <p class="section-kicker">Use the right tool</p><h2 id="tools-title">Generate, verify, or rebuild a QR?</h2><p
+          class="section-lead"
+        >
+          For a 2FA code not working problem, choose the page that matches the missing piece. Use the <a href="/"
+            >2FA code generator</a
+          > when you possess the secret and need the current code. Use the <a href="/totp-verifier">TOTP verifier</a> when
+          you have both a secret and candidate code and want to test their match. Use the <a
+            href="/2fa-qr-code-generator">QR code generator</a
+          > when you have an existing secret but need a scannable enrollment image. The <a
+            href="/totp-secret-key-generator">secret key generator</a
+          > creates a brand-new enrollment and cannot repair an existing provider account by itself.
+        </p>
+      </section>
+
+      <section class="seo-section" aria-labelledby="phone-title">
+        <p class="section-kicker">New device</p><h2 id="phone-title">
+          Authenticator codes not working after a phone change
+        </h2><p class="section-lead">
+          If the 2FA code not working problem began after a phone change, confirm the same secret and parameters reached
+          the new device. Cloud restore, app transfer, and device backup behavior varies between authenticator products.
+          Confirm every important entry individually before wiping the old phone. If the provider supports showing a new
+          enrollment QR, complete its setup and test a code while you still have a working recovery path.
+        </p><p class="section-lead">
+          Do not email an enrollment QR to yourself or leave it in a general photo library. The QR contains the secret
+          key; anyone who scans it can create valid future codes. If migration is incomplete and no authorized secret
+          copy remains, provider recovery is the correct route.
+        </p>
+      </section>
+
+      <section class="seo-section" aria-labelledby="limits-title">
+        <p class="section-kicker">Important limits</p><h2 id="limits-title">What TOTP troubleshooting cannot fix</h2><p
+          class="section-lead"
+        >
+          A 2FA code not working message may come from account state that local TOTP troubleshooting cannot see. This
+          guide cannot receive an SMS, reverse a secret from a short code, approve a push notification, bypass a second
+          factor, or change account ownership. It also cannot guarantee that a provider accepts the same clock window as
+          a local verifier. These are service or account-state decisions, not mathematical TOTP generation problems.
+        </p><p class="warning-note">
+          Never paste a password, backup code, session cookie, recovery phrase, or unrelated account credential into a
+          TOTP tool. A legitimate TOTP calculation only needs the shared secret and configuration.
+        </p>
+      </section>
+
+      <section class="seo-section" aria-labelledby="faq-title">
+        <p class="section-kicker">FAQ</p><h2 id="faq-title">2FA code not working FAQ</h2><p class="section-lead">
+          These 2FA code not working answers cover the failure modes that remain after the ordered checks above.
+        </p><div class="faq-list">
+          {
+            faqs.map((faq, index) => (
+              <details open={index === 0}>
+                <>
+                  <summary>{faq.question}</summary>
+                  <p>{faq.answer}</p>
+                </>
+              </details>
+            ))
+          }
+        </div>
+      </section>
+    </article>
+    <section class="seo-final" aria-labelledby="final-title">
+      <p class="section-kicker">Next check</p><h2 id="final-title">Test the secret and code together</h2><p>
+        The verifier can separate a TOTP mismatch from a provider-side account problem without storing the input.
+      </p><a href="/totp-verifier">Open the TOTP verifier</a>
+    </section>
+  </main>
+  <Footer {...footerData} />
+  <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
+</Layout>

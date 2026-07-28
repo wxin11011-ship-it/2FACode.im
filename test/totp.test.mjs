@@ -5,17 +5,20 @@ import { base32 } from '@otplib/plugin-base32-scure';
 
 import {
   MAX_ENTRIES,
+  DEFAULT_SECRET_BYTES,
   MAX_INPUT_LENGTH,
   MAX_LABEL_LENGTH,
   MAX_LINE_LENGTH,
   TotpInputError,
   buildOtpauthUri,
   generateTotp,
+  generateRandomSecret,
   getCryptoPlugin,
   getSecondsRemaining,
   maskSecret,
   parseInput,
   parseLine,
+  verifyTotp,
 } from '../src/scripts/totp.mjs';
 
 const textEncoder = new TextEncoder();
@@ -161,4 +164,61 @@ test('builds a scannable otpauth URI for QR encoding', () => {
   assert.match(uri, /issuer=GitHub/);
   assert.equal(parseLine(uri, 1).secret, RFC_SHA1_SECRET);
   assert.equal(parseLine(uri, 1).algorithm, 'sha1');
+});
+
+test('generates a 160-bit Base32 secret from an injected secure source', () => {
+  const source = {
+    getRandomValues(bytes) {
+      bytes.fill(0xab);
+      return bytes;
+    },
+  };
+
+  const secret = generateRandomSecret(DEFAULT_SECRET_BYTES, source);
+  assert.equal(secret.length, 32);
+  assert.match(secret, /^[A-Z2-7]+$/);
+  assert.equal(base32.decode(secret).length, DEFAULT_SECRET_BYTES);
+});
+
+test('rejects weak secret sizes and missing secure randomness', () => {
+  assert.throws(() => generateRandomSecret(16, { getRandomValues() {} }), /between 20 and 64 bytes/);
+  assert.throws(() => generateRandomSecret(20, null), /Secure random generation is unavailable/);
+});
+
+test('verifies the current and neighboring TOTP windows', async () => {
+  const entry = {
+    secret: RFC_SHA1_SECRET,
+    algorithm: 'sha1',
+    digits: 8,
+    period: 30,
+  };
+  const current = await generateTotp(entry, 59, getCryptoPlugin(false));
+  const previous = await generateTotp(entry, 29, getCryptoPlugin(false));
+
+  assert.deepEqual(await verifyTotp(entry, current, { epoch: 59, cryptoPlugin: getCryptoPlugin(false) }), {
+    valid: true,
+    delta: 0,
+  });
+  assert.deepEqual(await verifyTotp(entry, previous, { epoch: 59, cryptoPlugin: getCryptoPlugin(false) }), {
+    valid: true,
+    delta: -1,
+  });
+});
+
+test('returns invalid without echoing the candidate and validates its digit count', async () => {
+  const entry = {
+    secret: RFC_SHA1_SECRET,
+    algorithm: 'sha1',
+    digits: 8,
+    period: 30,
+  };
+
+  assert.deepEqual(await verifyTotp(entry, '00000000', { epoch: 59, cryptoPlugin: getCryptoPlugin(false) }), {
+    valid: false,
+    delta: null,
+  });
+  await assert.rejects(
+    () => verifyTotp(entry, '123456', { epoch: 59, cryptoPlugin: getCryptoPlugin(false) }),
+    /exactly 8 digits/
+  );
 });

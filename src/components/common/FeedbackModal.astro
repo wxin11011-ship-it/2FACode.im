@@ -8,13 +8,7 @@ const productName = '2FACode.im';
 const endpoint = 'https://feedback.remixtranslator.com/api/submit';
 ---
 
-<div
-  id="tfa-feedback-root"
-  class="tfa-fb-root"
-  hidden
-  data-endpoint={endpoint}
-  data-product={productName}
->
+<div id="tfa-feedback-root" class="tfa-fb-root" hidden data-endpoint={endpoint} data-product={productName}>
   <div class="tfa-fb-overlay" data-feedback-close tabindex="-1"></div>
   <section
     class="tfa-fb-panel"
@@ -31,9 +25,7 @@ const endpoint = 'https://feedback.remixtranslator.com/api/submit';
             Help improve {productName} — bugs, ideas, or questions are welcome.
           </p>
         </div>
-        <button type="button" class="tfa-fb-close" data-feedback-close aria-label="Close feedback form">
-          ×
-        </button>
+        <button type="button" class="tfa-fb-close" data-feedback-close aria-label="Close feedback form"> × </button>
       </header>
 
       <form id="tfa-fb-form" class="tfa-fb-form" novalidate>
@@ -43,18 +35,14 @@ const endpoint = 'https://feedback.remixtranslator.com/api/submit';
             <button type="button" class="tfa-fb-type is-active" data-type="bug" aria-pressed="true">
               Something's not working
             </button>
-            <button type="button" class="tfa-fb-type" data-type="feature" aria-pressed="false">
-              I have an idea
-            </button>
+            <button type="button" class="tfa-fb-type" data-type="feature" aria-pressed="false"> I have an idea </button>
             <button type="button" class="tfa-fb-type" data-type="question" aria-pressed="false">
               I have a question
             </button>
             <button type="button" class="tfa-fb-type" data-type="thanks" aria-pressed="false">
               Just saying thanks
             </button>
-            <button type="button" class="tfa-fb-type" data-type="other" aria-pressed="false">
-              Something else
-            </button>
+            <button type="button" class="tfa-fb-type" data-type="other" aria-pressed="false"> Something else </button>
           </div>
         </fieldset>
 
@@ -83,14 +71,7 @@ const endpoint = 'https://feedback.remixtranslator.com/api/submit';
         </label>
 
         <!-- Honeypot -->
-        <input
-          class="tfa-fb-honeypot"
-          name="website"
-          type="text"
-          tabindex="-1"
-          autocomplete="off"
-          aria-hidden="true"
-        />
+        <input class="tfa-fb-honeypot" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" />
 
         <p id="tfa-fb-error" class="tfa-fb-error" role="alert" hidden></p>
 
@@ -539,7 +520,7 @@ const endpoint = 'https://feedback.remixtranslator.com/api/submit';
         showError(
           isNetwork
             ? "We couldn't send your feedback right now. Check your connection and try again."
-            : 'Something went wrong while sending. Please try again in a moment.',
+            : 'Something went wrong while sending. Please try again in a moment.'
         );
         submitBtn.disabled = false;
         submitBtn.textContent = 'Send feedback';

@@ -1,0 +1,61 @@
+---
+import '~/assets/styles/seo-tool-page.css';
+
+import Breadcrumbs from '~/components/common/Breadcrumbs.astro';
+import Footer from '~/components/widgets/Footer.astro';
+import Header from '~/components/widgets/Header.astro';
+import Layout from '~/layouts/Layout.astro';
+import { footerData, headerData } from '~/navigation';
+
+const metadata = {
+  title: '2FA & TOTP Guides — Practical Troubleshooting',
+  description:
+    'Practical guides for TOTP setup, authenticator code problems, security limits, and choosing the right browser-only 2FA tool.',
+  ignoreTitleTemplate: true,
+  canonical: 'https://2facode.im/guides',
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
+---
+
+<Layout metadata={metadata} enableThirdPartyAnalytics>
+  <Header {...headerData} isSticky showToggleTheme={true} />
+  <main class="seo-tool-page">
+    <div class="page-crumbs"><Breadcrumbs currentLabel="Guides" /></div>
+    <section class="seo-hero-copy">
+      <h1>2FA & TOTP Guides</h1><p>
+        Clear explanations for authenticator setup, TOTP failures, and the security boundaries a generator cannot cross.
+      </p><ul class="trust-chips">
+        <li>Practical checks</li><li>No bypass claims</li><li>Linked to working tools</li>
+      </ul>
+    </section>
+    <section class="seo-section" aria-labelledby="guide-list-title">
+      <p class="section-kicker">Troubleshooting</p><h2 id="guide-list-title">Start with the problem you have</h2><div
+        class="use-grid use-grid-spaced"
+      >
+        <article>
+          <h3><a href="/guides/2fa-code-not-working">2FA code not working</a></h3><p>
+            Check automatic time, a fresh code, the exact secret, and TOTP parameters before moving to provider
+            recovery.
+          </p>
+        </article><article>
+          <h3><a href="/totp-verifier">Test a TOTP code</a></h3><p>
+            Use the local verifier when you have an authorized secret and candidate code and need a precise match
+            result.
+          </p>
+        </article><article>
+          <h3><a href="/security">Understand browser-only security</a></h3><p>
+            Learn what stays local, what optional analytics can see, and which device risks remain outside the site.
+          </p>
+        </article><article>
+          <h3><a href="/tools">Browse all 2FA tools</a></h3><p>
+            Generate live codes, create enrollment secrets, build QR images, or verify a known TOTP code.
+          </p>
+        </article>
+      </div>
+    </section>
+  </main>
+  <Footer {...footerData} />
+</Layout>

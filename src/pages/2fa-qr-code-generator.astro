@@ -65,7 +65,7 @@ const faqs = [
   {
     question: 'Does my secret leave the browser?',
     answer:
-      'QR encoding and preview run in page memory. The secret is not written to LocalStorage as part of generation, and there is no generation API. Optional site analytics measure visits and are not a TOTP backend. Clearing the workspace or closing the tab removes the in-page fields.',
+      'QR encoding and preview run in page memory. The secret is not written to LocalStorage as part of generation, there is no generation API, and this tool page does not load third-party analytics. Clearing the workspace or closing the tab removes the in-page fields.',
   },
   {
     question: 'Can I use this for Google Authenticator, Authy, or Microsoft Authenticator?',
@@ -142,19 +142,14 @@ const schema = [
 
   <main id="main-content" class="tool-page">
     <div class="page-crumbs">
-      <Breadcrumbs
-        items={[
-          { label: 'Tools', href: '/tools' },
-          { label: '2FA QR Code Generator' },
-        ]}
-      />
+      <Breadcrumbs items={[{ label: 'Tools', href: '/tools' }, { label: '2FA QR Code Generator' }]} />
     </div>
     <section class="hero-section">
       <div class="hero-copy">
         <h1>2FA QR Code Generator</h1>
         <p class="hero-intro">
-          Turn a Base32 secret or otpauth URI into a scannable 2FA QR code in this browser. Nothing is uploaded—scan with
-          your authenticator app, download a PNG, or copy the URI.
+          Turn a Base32 secret or otpauth URI into a scannable 2FA QR code in this browser. Nothing is uploaded—scan
+          with your authenticator app, download a PNG, or copy the URI.
         </p>
       </div>
 
@@ -163,6 +158,8 @@ const schema = [
       <p class="hero-footnote">
         Need live six-digit codes instead?
         <a href="/">Open the 2FA code generator</a>
+        · Need a brand-new key?
+        <a href="/totp-secret-key-generator">Create a TOTP secret</a>
         · Source-available on
         <a href="https://github.com/wxin11011-ship-it/2FACode.im" target="_blank" rel="noopener noreferrer">GitHub</a>.
       </p>
@@ -173,11 +170,11 @@ const schema = [
         <p class="section-kicker">How it works</p>
         <h2 id="how-qr-title">How this TOTP QR code generator works</h2>
         <p>
-          A 2FA QR code is not a random picture. It encodes a standard <code>otpauth://totp/…</code> string that carries
-          the shared secret and the settings your authenticator needs. This online 2FA QR code generator builds that
-          string locally, draws the 2FA QR code on a canvas, and keeps the secret in the tab until you clear it. If you
-          searched for a free 2FA QR code generator online, this page is the dedicated tool for secret-to-QR—not the live
-          six-digit TOTP calculator on the homepage.
+          A 2FA QR code is not a random picture. It encodes a standard <code>otpauth://totp/…</code> string that carries the
+          shared secret and the settings your authenticator needs. This online 2FA QR code generator builds that string locally,
+          draws the 2FA QR code on a canvas, and keeps the secret in the tab until you clear it. If you searched for a free
+          2FA QR code generator online, this page is the dedicated tool for secret-to-QR—not the live six-digit TOTP calculator
+          on the homepage.
         </p>
       </div>
       <div class="step-grid">
@@ -189,12 +186,17 @@ const schema = [
         <article>
           <span>02</span>
           <h3>Label the account</h3>
-          <p>Add an account name and optional issuer so Google Authenticator, Authy, or similar apps show a clear title.</p>
+          <p>
+            Add an account name and optional issuer so Google Authenticator, Authy, or similar apps show a clear title.
+          </p>
         </article>
         <article>
           <span>03</span>
           <h3>Generate and scan</h3>
-          <p>Create the QR, scan it with your phone app, then download the PNG or copy the URI if you need a backup image.</p>
+          <p>
+            Create the QR, scan it with your phone app, then download the PNG or copy the URI if you need a backup
+            image.
+          </p>
         </article>
       </div>
     </section>
@@ -206,13 +208,13 @@ const schema = [
         <p>
           When a provider shows “enter this key manually,” that Base32 string is enough to rebuild a scannable 2FA QR
           code. Enter the key, set the label you want on the phone, and generate. Advanced options stay collapsed: most
-          services use SHA-1, six digits, and a 30-second period. Change them only when the service documents non-default
-          values. Generating a QR code from a secret key is the main job of this 2FA QR code generator.
+          services use SHA-1, six digits, and a 30-second period. Change them only when the service documents
+          non-default values. Generating a QR code from a secret key is the main job of this 2FA QR code generator.
         </p>
         <p>
-          If you already store an <code>otpauth://totp/</code> URI in a password manager, paste the whole URI into the
-          secret field. The 2FA QR code tool reads algorithm, digits, and period from the URI so the QR matches the
-          original setup. That is often faster than retyping a long Base32 string by hand.
+          If you already store an <code>otpauth://totp/</code> URI in a password manager, paste the whole URI into the secret
+          field. The 2FA QR code tool reads algorithm, digits, and period from the URI so the QR matches the original setup.
+          That is often faster than retyping a long Base32 string by hand.
         </p>
       </div>
     </section>
@@ -272,10 +274,10 @@ const schema = [
         <p class="section-kicker">Browser-only encoding</p>
         <h2 id="safe-title">Is an online 2FA QR code generator safe?</h2>
         <p>
-          Anyone who can read the 2FA QR code (or the secret inside it) can generate the same codes. Treat the image like
-          the secret. This 2FA QR code generator draws the QR in the page and does not call a generation API. Optional
-          analytics may measure traffic; they are not used as a secret database. “Is a QR code generator safe?” depends
-          on the device and the domain—always confirm you are on 2facode.im.
+          Anyone who can read the 2FA QR code (or the secret inside it) can generate the same codes. Treat the image
+          like the secret. This 2FA QR code generator draws the QR in the page and does not call a generation API.
+          Optional analytics may measure traffic; they are not used as a secret database. “Is a QR code generator safe?”
+          depends on the device and the domain—always confirm you are on 2facode.im.
         </p>
         <p>
           Prefer a trusted device, verify the domain, avoid public screens when scanning, and clear the form when you
@@ -304,11 +306,16 @@ const schema = [
         </article>
         <article>
           <h3>Second authenticator</h3>
-          <p>Enroll a hardware-backed app or a backup phone without disabling 2FA on the service when you still have the secret.</p>
+          <p>
+            Enroll a hardware-backed app or a backup phone without disabling 2FA on the service when you still have the
+            secret.
+          </p>
         </article>
         <article>
           <h3>Lab and staging accounts</h3>
-          <p>Developers rebuild otpauth QR codes from known test secrets while keeping generation local to the browser.</p>
+          <p>
+            Developers rebuild otpauth QR codes from known test secrets while keeping generation local to the browser.
+          </p>
         </article>
       </div>
       <div class="inline-gallery" aria-hidden="true">

@@ -6,15 +6,15 @@ layout: '~/layouts/PageLayout.astro'
 
 # Privacy Policy
 
-_Last updated: July 24, 2026_
+_Last updated: July 28, 2026_
 
 ## Summary
 
-2FACode.im is designed so that **TOTP secrets and generated codes do not leave the browser during normal generation**. The site does not require an account and does not run advertising scripts. Lightweight page analytics may run to measure site usage; they are separate from the generator and are not used to store setup keys or codes.
+2FACode.im is designed so that **TOTP secrets and generated codes do not leave the browser during normal generation**. The site does not require an account and does not run advertising scripts. Sensitive generator and verifier pages do not load PageView or Microsoft Clarity; lightweight analytics may run only on non-tool content and directory pages.
 
 ## 2FA secrets and generated codes
 
-The 2FA code generator processes Base32 secrets and otpauth TOTP URIs in the current browser tab. It does not send that input to a generation API, server database, or advertising service. Secrets and codes are not intentionally submitted to analytics tools.
+The 2FA code generator processes Base32 secrets and otpauth TOTP URIs in the current browser tab. It does not send that input to a generation API, server database, or advertising service. Sensitive tool routes do not load third-party analytics scripts.
 
 The generator does not write secrets or generated codes to LocalStorage, SessionStorage, IndexedDB, cookies, URL parameters, or the browser history. Active data exists in page memory and is removed when the workspace is cleared, the page is reloaded, or the tab is closed.
 
@@ -28,12 +28,12 @@ Like most static websites, the hosting or network provider may process ordinary 
 
 ## Analytics
 
-The site may load:
+Non-tool content and directory pages may load:
 
 - **PageView** (`app.pageview.app`) for privacy-oriented page analytics (domain-scoped pageviews).
 - **Microsoft Clarity** for delayed, aggregated session insights such as heatmaps and interaction patterns.
 
-These scripts are for product and traffic measurement. They are not a TOTP generation backend. Do not paste secrets into feedback or support channels; keep secrets in the generator workspace only.
+These scripts are for product and traffic measurement and are excluded from pages that accept or generate TOTP secrets. They are not a TOTP generation backend. Do not paste secrets into feedback or support channels; keep secrets in the generator workspace only.
 
 ## Third-party services
 
@@ -43,7 +43,7 @@ Links to external standards and the [public source repository](https://github.co
 
 ## Cookies
 
-2FACode.im does not set its own application tracking cookies for generation. Third-party analytics providers may set or use their own storage according to their policies (especially Clarity).
+2FACode.im does not set its own application tracking cookies for generation. On non-tool pages where analytics are enabled, third-party analytics providers may set or use their own storage according to their policies (especially Clarity).
 
 ## Security limitations
 

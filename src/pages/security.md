@@ -14,7 +14,7 @@ _What the browser-only claim covers—and what it does not_
 
 The implementation uses `otplib` with its Web Crypto, Noble, and Base32 plugins. Modern browsers use Web Crypto; environments without `crypto.subtle` use the bundled Noble implementation as a local compatibility fallback. Those packages are included during the site build rather than loaded from a third-party CDN at runtime.
 
-The generated deployment artifact also includes a hash-based Content Security Policy. Its script and style hashes are calculated from the final static HTML, framing is denied, and the policy does not use `unsafe-inline`. Network access is limited to Feedback Hub, PageView, and Microsoft Clarity endpoints—not a general TOTP generation API. This is a defense-in-depth control; the hosting platform must serve the generated `_headers` rules for the response header to take effect.
+The generated deployment artifact also includes a hash-based Content Security Policy. Its script and style hashes are calculated from the final static HTML, framing is denied, and the policy does not use `unsafe-inline`. Sensitive tool pages do not load PageView or Microsoft Clarity. The shared policy permits those endpoints for non-tool pages and Feedback Hub submissions, but a permission alone does not start a request. This is a defense-in-depth control; the hosting platform must serve the generated `_headers` rules for the response header to take effect.
 
 ## Secret lifecycle
 
@@ -26,7 +26,7 @@ When a user submits the generator form:
 4. The result is rendered with DOM text nodes, and the displayed secret is masked.
 5. Clear, reload, or closing the tab removes the in-memory workspace.
 
-The generator does not write authentication data to LocalStorage, SessionStorage, IndexedDB, cookies, URLs, console logs, or a 2FACode database. Secrets and codes are not intentionally sent to analytics.
+The generator does not write authentication data to LocalStorage, SessionStorage, IndexedDB, cookies, URLs, console logs, or a 2FACode database. Third-party analytics runtimes are not loaded on the sensitive tool routes.
 
 ## Standards and tests
 
@@ -50,7 +50,7 @@ HOTP counter values, SMS codes, push approvals, FIDO2, U2F, passkeys, and provid
 - Accidental disclosure through shareable secret URLs
 - Copying a secret when the user only intended to copy a generated code
 
-Page-level analytics (PageView / Clarity) measure site usage. They are not a generation API and must not receive secrets as intentional product data.
+Page-level analytics (PageView / Clarity) may measure usage on non-tool content and directory pages. They are not loaded on pages that accept or generate TOTP secrets.
 
 ## Threats this design does not eliminate
 

@@ -17,9 +17,10 @@ import type { MetaData as MetaDataType } from '~/types';
 
 export interface Props {
   metadata?: MetaDataType;
+  enableThirdPartyAnalytics?: boolean;
 }
 
-const { metadata = {} } = Astro.props;
+const { metadata = {}, enableThirdPartyAnalytics = false } = Astro.props;
 const { language, textDirection } = I18N;
 ---
 
@@ -32,7 +33,7 @@ const { language, textDirection } = I18N;
     <ApplyColorMode />
     <Metadata {...metadata} />
     <SiteVerification />
-    <Analytics />
+    {enableThirdPartyAnalytics && <Analytics />}
   </head>
 
   <body class="antialiased text-default bg-page tracking-tight">

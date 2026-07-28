@@ -22,7 +22,7 @@ const pageTitle =
   typeof resolvedMetadata.title === 'string' ? resolvedMetadata.title.replace(/\s*[—|-].*$/, '').trim() : '';
 ---
 
-<Layout metadata={resolvedMetadata}>
+<Layout metadata={resolvedMetadata} enableThirdPartyAnalytics>
   <slot name="header">
     <Header {...headerData} isSticky showToggleTheme={true} />
   </slot>
