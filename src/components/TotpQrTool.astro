@@ -140,13 +140,20 @@ import { GITHUB_REPO_URL } from '~/navigation';
           </p>
         </div>
       </div>
+      <p class="compatibility-warning" data-qr-warning role="status" hidden></p>
     </div>
   </div>
 </section>
 
 <script>
   import QRCode from 'qrcode';
-  import { TotpInputError, buildOtpauthUri, normalizeSecret, parseLine } from '~/scripts/totp.mjs';
+  import {
+    NON_CANONICAL_BASE32_WARNING,
+    TotpInputError,
+    buildOtpauthUri,
+    normalizeSecretWithInfo,
+    parseLine,
+  } from '~/scripts/totp.mjs';
 
   const tool = document.querySelector('[data-qr-tool]');
 
@@ -161,6 +168,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
     const digitsSelect = tool.querySelector('[data-qr-digits]');
     const periodSelect = tool.querySelector('[data-qr-period]');
     const errors = tool.querySelector('[data-qr-errors]');
+    const warning = tool.querySelector('[data-qr-warning]');
     const results = tool.querySelector('[data-qr-results]');
     const canvas = tool.querySelector('[data-qr-canvas]');
     const uriOut = tool.querySelector('[data-qr-uri]');
@@ -185,6 +193,12 @@ import { GITHUB_REPO_URL } from '~/navigation';
       errors.textContent = message;
     };
 
+    const setWarning = (message: string) => {
+      if (!(warning instanceof HTMLElement)) return;
+      warning.textContent = message;
+      warning.hidden = !message;
+    };
+
     const showResults = (show: boolean) => {
       if (results instanceof HTMLElement) results.hidden = !show;
     };
@@ -204,6 +218,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
         ctx?.clearRect(0, 0, canvas.width, canvas.height);
       }
       setErrors('');
+      setWarning('');
       showResults(false);
       if (secretInput instanceof HTMLTextAreaElement) secretInput.focus();
     };
@@ -237,22 +252,27 @@ import { GITHUB_REPO_URL } from '~/navigation';
           digits: entry.digits,
           period: entry.period,
           fromUri: true,
+          warning: entry.warning || '',
         };
       }
 
+      const normalizedSecret = normalizeSecretWithInfo(rawSecret);
+
       return {
-        secret: normalizeSecret(rawSecret),
+        secret: normalizedSecret.secret,
         label: accountInput instanceof HTMLInputElement ? accountInput.value.trim() : '',
         issuer: issuerInput instanceof HTMLInputElement ? issuerInput.value.trim() : '',
         algorithm: algorithmSelect instanceof HTMLSelectElement ? algorithmSelect.value : 'sha1',
         digits: digitsSelect instanceof HTMLSelectElement ? Number(digitsSelect.value) : 6,
         period: periodSelect instanceof HTMLSelectElement ? Number(periodSelect.value) : 30,
         fromUri: false,
+        warning: normalizedSecret.wasCanonicalized ? NON_CANONICAL_BASE32_WARNING : '',
       };
     };
 
     const generate = async () => {
       setErrors('');
+      setWarning('');
       try {
         const fields = resolveFields();
         const uri = buildOtpauthUri({
@@ -289,6 +309,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
         }
 
         showResults(true);
+        setWarning(fields.warning);
         results?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } catch (error) {
         showResults(false);
@@ -557,6 +578,22 @@ import { GITHUB_REPO_URL } from '~/navigation';
     color: var(--error);
     background: color-mix(in srgb, var(--error) 7%, transparent);
     font-size: 0.82rem;
+  }
+
+  .compatibility-warning {
+    margin: 0 1rem 1rem;
+    border: 1px solid color-mix(in srgb, #b7791f 30%, transparent);
+    border-radius: 0.8rem;
+    padding: 0.7rem 0.85rem;
+    color: color-mix(in srgb, #8a5a00 88%, var(--text));
+    background: color-mix(in srgb, #f6c453 12%, transparent);
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
+  :global(.dark) .compatibility-warning {
+    color: #ffd88a;
+    background: color-mix(in srgb, #f6c453 10%, transparent);
   }
 
   .form-actions {

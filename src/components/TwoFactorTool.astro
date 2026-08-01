@@ -54,6 +54,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
         </div>
       </div>
       <div class="code-list" data-code-list></div>
+      <div class="compatibility-warning" data-warnings role="status" aria-live="polite" hidden></div>
       <p class="result-note">Codes refresh automatically. Clear when you are done.</p>
     </div>
   </div>
@@ -71,6 +72,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
     algorithm: string;
     digits: number;
     period: number;
+    warning?: string;
   };
 
   const tool = document.querySelector('[data-totp-tool]');
@@ -82,6 +84,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
     const input = tool.querySelector('[data-totp-input]');
     const lineCount = tool.querySelector('[data-line-count]');
     const errors = tool.querySelector('[data-errors]');
+    const warnings = tool.querySelector('[data-warnings]');
     const results = tool.querySelector('[data-results]');
     const resultsTitle = tool.querySelector('[data-results-title]');
     const codeList = tool.querySelector('[data-code-list]');
@@ -113,6 +116,25 @@ import { GITHUB_REPO_URL } from '~/navigation';
       }
       errors.append(list);
       errors.hidden = false;
+    };
+
+    const setWarnings = (items: string[]) => {
+      if (!(warnings instanceof HTMLElement)) return;
+      warnings.replaceChildren();
+
+      if (!items.length) {
+        warnings.hidden = true;
+        return;
+      }
+
+      const list = document.createElement('ul');
+      for (const item of items) {
+        const element = document.createElement('li');
+        element.textContent = item;
+        list.append(element);
+      }
+      warnings.append(list);
+      warnings.hidden = false;
     };
 
     const formatToken = (token: string) => {
@@ -245,6 +267,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
       if (results instanceof HTMLElement) results.hidden = true;
       if (lineCount instanceof HTMLElement) lineCount.textContent = '0 / 50 lines';
       setErrors([]);
+      setWarnings([]);
     };
 
     const syncLineCount = () => {
@@ -259,6 +282,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
 
       const requestId = ++generationId;
       setErrors([]);
+      setWarnings([]);
 
       try {
         const parsed = parseInput(input.value);
@@ -274,6 +298,11 @@ import { GITHUB_REPO_URL } from '~/navigation';
           ...generationErrors,
         ];
         setErrors(allErrors);
+        setWarnings(
+          parsed.warnings.map(
+            (warning: { lineNumber: number; message: string }) => `Line ${warning.lineNumber}: ${warning.message}`
+          )
+        );
 
         if (!activeTokens.size) {
           if (results instanceof HTMLElement) results.hidden = true;
@@ -643,6 +672,27 @@ import { GITHUB_REPO_URL } from '~/navigation';
   .input-errors ul {
     margin: 0;
     padding-left: 1.1rem;
+  }
+
+  .compatibility-warning {
+    margin: 0 1rem 1rem;
+    border: 1px solid color-mix(in srgb, #b7791f 30%, transparent);
+    border-radius: 0.8rem;
+    padding: 0.7rem 0.85rem;
+    color: color-mix(in srgb, #8a5a00 88%, var(--text));
+    background: color-mix(in srgb, #f6c453 12%, transparent);
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
+  .compatibility-warning ul {
+    margin: 0;
+    padding-left: 1.1rem;
+  }
+
+  :global(.dark) .compatibility-warning {
+    color: #ffd88a;
+    background: color-mix(in srgb, #f6c453 10%, transparent);
   }
 
   .form-actions {

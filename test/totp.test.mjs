@@ -9,6 +9,7 @@ import {
   MAX_INPUT_LENGTH,
   MAX_LABEL_LENGTH,
   MAX_LINE_LENGTH,
+  NON_CANONICAL_BASE32_WARNING,
   TotpInputError,
   buildOtpauthUri,
   generateTotp,
@@ -16,6 +17,7 @@ import {
   getCryptoPlugin,
   getSecondsRemaining,
   maskSecret,
+  normalizeSecretWithInfo,
   parseInput,
   parseLine,
   verifyTotp,
@@ -101,6 +103,30 @@ test('returns line-scoped errors without echoing invalid input', () => {
   assert.equal(result.entries.length, 1);
   assert.deepEqual(result.errors, [{ lineNumber: 2, message: 'This line is not a valid Base32 secret.' }]);
   assert.doesNotMatch(result.errors[0].message, /not a secret/i);
+});
+
+test('normalizes non-canonical trailing Base32 bits without changing the decoded TOTP key', async () => {
+  const canonical = 'A'.repeat(31);
+  const nonCanonical = `${'A'.repeat(30)}D`;
+  const normalized = normalizeSecretWithInfo(nonCanonical);
+  const entry = parseLine(nonCanonical, 1);
+  const canonicalEntry = parseLine(canonical, 1);
+  const batch = parseInput(nonCanonical);
+
+  assert.deepEqual(normalized, { secret: canonical, wasCanonicalized: true });
+  assert.equal(entry.secret, canonical);
+  assert.equal(entry.warning, NON_CANONICAL_BASE32_WARNING);
+  assert.equal('warning' in canonicalEntry, false);
+  assert.deepEqual(batch.warnings, [{ lineNumber: 1, message: NON_CANONICAL_BASE32_WARNING }]);
+  assert.equal(
+    await generateTotp(entry, 1_700_000_000, getCryptoPlugin(false)),
+    await generateTotp(canonicalEntry, 1_700_000_000, getCryptoPlugin(false))
+  );
+});
+
+test('keeps rejecting impossible Base32 lengths and invalid characters', () => {
+  assert.throws(() => parseLine('A'.repeat(30), 1), /not a valid Base32 secret/);
+  assert.throws(() => parseLine(`${'A'.repeat(30)}0`, 1), /not a valid Base32 secret/);
 });
 
 test('limits a batch to the documented maximum', () => {

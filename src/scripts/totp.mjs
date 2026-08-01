@@ -11,9 +11,13 @@ export const MAX_INPUT_LENGTH = MAX_ENTRIES * (MAX_LINE_LENGTH + 1);
 const MIN_SECRET_BYTES = 16;
 const MAX_SECRET_BYTES = 64;
 export const DEFAULT_SECRET_BYTES = 20;
+export const NON_CANONICAL_BASE32_WARNING =
+  'Non-standard Base32 padding was normalized locally. Verify this code with the account provider.';
 
 const supportedAlgorithms = new Set(['sha1', 'sha256', 'sha512']);
 const supportedDigits = new Set([6, 7, 8]);
+const supportedUnpaddedLengthRemainders = new Set([0, 2, 4, 5, 7]);
+const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 export class TotpInputError extends Error {
   constructor(message) {
@@ -22,7 +26,25 @@ export class TotpInputError extends Error {
   }
 }
 
-export function normalizeSecret(value) {
+function decodeBase32Compat(secret) {
+  const bytes = [];
+  let buffer = 0;
+  let bits = 0;
+
+  for (const character of secret) {
+    buffer = (buffer << 5) | base32Alphabet.indexOf(character);
+    bits += 5;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((buffer >>> bits) & 0xff);
+      buffer &= bits ? (1 << bits) - 1 : 0;
+    }
+  }
+
+  return new Uint8Array(bytes);
+}
+
+export function normalizeSecretWithInfo(value) {
   const secret = String(value ?? '')
     .replace(/[\s-]+/g, '')
     .replace(/=+$/g, '')
@@ -32,13 +54,22 @@ export function normalizeSecret(value) {
   if (!/^[A-Z2-7]+$/.test(secret)) {
     throw new TotpInputError('This line is not a valid Base32 secret.');
   }
-  let secretBytes;
+
+  if (!supportedUnpaddedLengthRemainders.has(secret.length % 8)) {
+    throw new TotpInputError('This line is not a valid Base32 secret.');
+  }
+
+  let decoded;
+  let canonicalSecret;
   try {
-    secretBytes = base32.decode(secret).length;
+    decoded = decodeBase32Compat(secret);
+    canonicalSecret = base32.encode(decoded).replace(/=+$/g, '');
+    base32.decode(canonicalSecret);
   } catch {
     throw new TotpInputError('This line is not a valid Base32 secret.');
   }
 
+  const secretBytes = decoded.length;
   if (secretBytes < MIN_SECRET_BYTES) {
     throw new TotpInputError('The secret must contain at least 26 Base32 characters (128 bits).');
   }
@@ -46,7 +77,14 @@ export function normalizeSecret(value) {
     throw new TotpInputError('The secret must not exceed 64 bytes.');
   }
 
-  return secret;
+  return {
+    secret: canonicalSecret,
+    wasCanonicalized: canonicalSecret !== secret,
+  };
+}
+
+export function normalizeSecret(value) {
+  return normalizeSecretWithInfo(value).secret;
 }
 
 function normalizeLabel(value, fallback) {
@@ -103,15 +141,17 @@ function parseOtpauth(line, lineNumber) {
   }
   const issuer = (uri.searchParams.get('issuer') || '').trim();
   const label = normalizeLabel(rawLabel || issuer, `Code ${lineNumber}`);
+  const normalizedSecret = normalizeSecretWithInfo(uri.searchParams.get('secret'));
 
   return {
     id: `entry-${lineNumber}`,
     lineNumber,
     label,
-    secret: normalizeSecret(uri.searchParams.get('secret')),
+    secret: normalizedSecret.secret,
     algorithm: parseAlgorithm(uri.searchParams.get('algorithm')),
     digits: parseDigits(uri.searchParams.get('digits')),
     period: parsePeriod(uri.searchParams.get('period')),
+    ...(normalizedSecret.wasCanonicalized ? { warning: NON_CANONICAL_BASE32_WARNING } : {}),
   };
 }
 
@@ -126,15 +166,17 @@ export function parseLine(line, lineNumber) {
   const hasLabel = separatorIndex >= 0;
   const label = hasLabel ? value.slice(0, separatorIndex).trim() : `Code ${lineNumber}`;
   const secret = hasLabel ? value.slice(separatorIndex + 1) : value;
+  const normalizedSecret = normalizeSecretWithInfo(secret);
 
   return {
     id: `entry-${lineNumber}`,
     lineNumber,
     label: normalizeLabel(label, `Code ${lineNumber}`),
-    secret: normalizeSecret(secret),
+    secret: normalizedSecret.secret,
     algorithm: 'sha1',
     digits: 6,
     period: 30,
+    ...(normalizedSecret.wasCanonicalized ? { warning: NON_CANONICAL_BASE32_WARNING } : {}),
   };
 }
 
@@ -156,10 +198,13 @@ export function parseInput(value) {
 
   const entries = [];
   const errors = [];
+  const warnings = [];
 
   for (const line of lines) {
     try {
-      entries.push(parseLine(line.value, line.lineNumber));
+      const entry = parseLine(line.value, line.lineNumber);
+      entries.push(entry);
+      if (entry.warning) warnings.push({ lineNumber: line.lineNumber, message: entry.warning });
     } catch (error) {
       errors.push({
         lineNumber: line.lineNumber,
@@ -168,7 +213,7 @@ export function parseInput(value) {
     }
   }
 
-  return { entries, errors };
+  return { entries, errors, warnings };
 }
 
 export function maskSecret(secret) {

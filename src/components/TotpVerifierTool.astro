@@ -72,6 +72,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
       <span class="result-icon" data-verifier-icon aria-hidden="true">✓</span>
       <div><h3 data-verifier-heading>Valid TOTP code</h3><p data-verifier-message></p></div>
     </div>
+    <p class="compatibility-warning" data-verifier-warning role="status" hidden></p>
   </div>
 </section>
 
@@ -88,6 +89,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
     const digits = tool.querySelector('[data-verifier-digits]');
     const period = tool.querySelector('[data-verifier-period]');
     const error = tool.querySelector('[data-verifier-error]');
+    const warning = tool.querySelector('[data-verifier-warning]');
     const result = tool.querySelector('[data-verifier-result]');
     const icon = tool.querySelector('[data-verifier-icon]');
     const heading = tool.querySelector('[data-verifier-heading]');
@@ -97,6 +99,12 @@ import { GITHUB_REPO_URL } from '~/navigation';
       if (!(error instanceof HTMLElement)) return;
       error.textContent = value;
       error.hidden = !value;
+    };
+
+    const setWarning = (value: string) => {
+      if (!(warning instanceof HTMLElement)) return;
+      warning.textContent = value;
+      warning.hidden = !value;
     };
 
     const getEntry = () => {
@@ -129,12 +137,14 @@ import { GITHUB_REPO_URL } from '~/navigation';
     form?.addEventListener('submit', async (event) => {
       event.preventDefault();
       setError('');
+      setWarning('');
       if (result instanceof HTMLElement) result.hidden = true;
       try {
         const entry = getEntry();
         const candidate = codeInput instanceof HTMLInputElement ? codeInput.value : '';
         const verdict = await verifyTotp(entry, candidate, { window: 1 });
         showResult(verdict.valid, verdict.delta);
+        setWarning(entry.warning || '');
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : 'The code could not be checked.');
       }
@@ -149,6 +159,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
       const token = await generateTotp(parseLine(secret, 1));
       if (codeInput instanceof HTMLInputElement) codeInput.value = token;
       setError('');
+      setWarning('');
       if (result instanceof HTMLElement) result.hidden = true;
       if (codeInput instanceof HTMLInputElement) codeInput.focus();
     });
@@ -156,6 +167,7 @@ import { GITHUB_REPO_URL } from '~/navigation';
     tool.querySelector('[data-verifier-clear]')?.addEventListener('click', () => {
       if (form instanceof HTMLFormElement) form.reset();
       setError('');
+      setWarning('');
       if (result instanceof HTMLElement) result.hidden = true;
       if (secretInput instanceof HTMLTextAreaElement) secretInput.focus();
     });
